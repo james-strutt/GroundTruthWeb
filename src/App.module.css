@@ -53,6 +53,9 @@
 
 @media (max-width: 640px) {
   .navLinks a:not(.navCta) { display: none; }
+  .navInner { padding: 0 16px; height: 56px; }
+  .navBrand { font-size: 18px; }
+  .navCta { padding: 6px 16px; font-size: 13px; }
 }
 
 /* ═══════════════════════════════════
@@ -133,6 +136,14 @@
   }
   .heroSub { margin-left: auto; margin-right: auto; }
   .hero { min-height: auto; padding-bottom: 40px; }
+}
+
+@media (max-width: 480px) {
+  .hero { padding: 80px 16px 32px; }
+  .heroInner { gap: 28px; }
+  .heroTitle { font-size: clamp(26px, 7vw, 36px); margin-bottom: 14px; }
+  .heroSub { font-size: 15px; margin-bottom: 20px; }
+  .heroBadge { font-size: 11px; padding: 5px 12px; margin-bottom: 14px; }
 }
 
 /* ═══════════════════════════════════
@@ -294,6 +305,20 @@
   }
 }
 
+@media (max-width: 480px) {
+  .sectionHeader { margin-bottom: 32px; }
+  .sectionTitle { font-size: clamp(22px, 6vw, 28px); }
+  .sectionSub { font-size: 14px; }
+
+  .features { padding: 48px 16px; }
+  .featureTabs { margin-bottom: 28px; gap: 2px; padding: 3px; }
+  .featureTabBtn { flex: 0 1 30%; font-size: 11px; padding: 7px 6px; }
+  .featurePanel { gap: 24px; }
+  .featureTitle { font-size: 24px; }
+  .featureTagline { font-size: 15px; }
+  .featureDesc { font-size: 14px; line-height: 1.55; }
+}
+
 /* ═══════════════════════════════════
    How it works
    ═══════════════════════════════════ */
@@ -348,6 +373,13 @@
   .stepsGrid { grid-template-columns: 1fr; gap: 32px; }
 }
 
+@media (max-width: 480px) {
+  .howSection { padding: 48px 16px; }
+  .stepNum { width: 40px; height: 40px; font-size: 18px; }
+  .stepTitle { font-size: 18px; }
+  .stepDesc { font-size: 14px; }
+}
+
 /* ═══════════════════════════════════
    Final CTA
    ═══════════════════════════════════ */
@@ -393,6 +425,12 @@
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 28px;
+}
+
+@media (max-width: 480px) {
+  .ctaSection { padding: 48px 16px; }
+  .ctaTitle { font-size: clamp(22px, 6vw, 28px); }
+  .ctaSub { font-size: 14px; margin-bottom: 20px; }
 }
 
 /* ═══════════════════════════════════
@@ -472,13 +510,14 @@
   border-radius: 999px;
 }
 
-@media (max-width: 480px) {
-  .waitlistForm {
-    flex-direction: column;
-  }
-  .waitlistForm { max-width: 100%; }
-}
-
 @media (max-width: 900px) {
   .waitlistForm { margin: 0 auto; }
+}
+
+@media (max-width: 480px) {
+  .waitlistForm { flex-direction: column; max-width: 100%; }
+  .emailInput { padding: 10px 14px; font-size: 14px; }
+  .submitBtn { padding: 10px 20px; font-size: 14px; white-space: normal; }
+  .formSuccess { font-size: 14px; padding: 10px 16px; }
+  .footer { padding: 24px 16px; }
 }

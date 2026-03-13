@@ -107,4 +107,36 @@
     top: 7px;
     border-radius: 12px;
   }
+
+  .large {
+    width: 260px;
+    height: 563px;
+  }
+
+  .large .frame { border-radius: 40px; }
+  .large .screen { border-radius: 34px; }
+  .large .island { width: 88px; height: 24px; top: 8px; border-radius: 14px; }
+  .large .homeIndicator { width: 96px; height: 4px; bottom: 6px; }
+}
+
+@media (max-width: 400px) {
+  .container {
+    width: 200px;
+    height: 433px;
+  }
+
+  .frame { border-radius: 28px; }
+  .screen { border-radius: 22px; top: 4px; left: 4px; right: 4px; bottom: 4px; }
+  .island { width: 64px; height: 18px; top: 6px; border-radius: 10px; }
+  .homeIndicator { width: 72px; height: 3px; bottom: 5px; }
+
+  .large {
+    width: 230px;
+    height: 498px;
+  }
+
+  .large .frame { border-radius: 34px; }
+  .large .screen { border-radius: 28px; top: 5px; left: 5px; right: 5px; bottom: 5px; }
+  .large .island { width: 76px; height: 20px; top: 7px; border-radius: 12px; }
+  .large .homeIndicator { width: 84px; height: 4px; bottom: 6px; }
 }
