@@ -6,68 +6,86 @@ export function HomeScreen() {
     <div className={styles.root}>
       {/* Map background */}
       <div className={styles.map}>
-        {/* Topo grid lines drawn via CSS ::before */}
-        {/* Roads */}
-        <div className={`${styles.road} ${styles.roadH} ${styles.roadMain}`} style={{ top: '35%' }} />
-        <div className={`${styles.road} ${styles.roadH}`} style={{ top: '55%' }} />
-        <div className={`${styles.road} ${styles.roadH}`} style={{ top: '78%' }} />
-        <div className={`${styles.road} ${styles.roadV} ${styles.roadMain}`} style={{ left: '36%' }} />
-        <div className={`${styles.road} ${styles.roadV}`} style={{ left: '67%' }} />
+        <div className={styles.mapContent}>
+          {/* Roads */}
+          <div className={`${styles.road} ${styles.roadH} ${styles.roadMain}`} style={{ top: '35%' }} />
+          <div className={`${styles.road} ${styles.roadH}`} style={{ top: '55%' }} />
+          <div className={`${styles.road} ${styles.roadH}`} style={{ top: '78%' }} />
+          <div className={`${styles.road} ${styles.roadV} ${styles.roadMain}`} style={{ left: '36%' }} />
+          <div className={`${styles.road} ${styles.roadV}`} style={{ left: '67%' }} />
 
-        {/* Pins */}
-        <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '28%', left: '24%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+          {/* Walking route — animated draw-on */}
+          <svg className={styles.route} viewBox="0 0 280 500" preserveAspectRatio="none">
+            <path
+              className={styles.routeGlow}
+              d="M 56,260 L 88,260 Q 100,260 100,248 L 100,187 Q 100,175 112,175 L 188,175"
+            />
+            <path
+              className={styles.routeLine}
+              d="M 56,260 L 88,260 Q 100,260 100,248 L 100,187 Q 100,175 112,175 L 188,175"
+            />
+          </svg>
+
+          {/* Current location indicator */}
+          <div className={styles.locationDot} style={{ top: '35%', left: '67%' }}>
+            <div className={styles.locationRing} />
+            <div className={styles.locationRing2} />
+            <div className={styles.locationCenter} />
           </div>
-        </div>
-        <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '46%', left: '52%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+
+          {/* Pins — staggered drop entrance */}
+          <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '28%', left: '24%', animationDelay: '0.5s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div className={`${styles.pin} ${styles.pinDark}`} style={{ top: '62%', left: '44%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
+          <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '46%', left: '52%', animationDelay: '0.65s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div className={`${styles.pin} ${styles.pinGold}`} style={{ top: '70%', left: '78%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
+          <div className={`${styles.pin} ${styles.pinDark}`} style={{ top: '62%', left: '44%', animationDelay: '0.8s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div className={`${styles.pin} ${styles.pinGreen}`} style={{ top: '50%', left: '20%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-            </svg>
+          <div className={`${styles.pin} ${styles.pinGold}`} style={{ top: '70%', left: '78%', animationDelay: '0.95s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '32%', left: '72%' }}>
-          <div className={styles.pinIcon}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+          <div className={`${styles.pin} ${styles.pinGreen}`} style={{ top: '50%', left: '20%', animationDelay: '1.1s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+              </svg>
+            </div>
+          </div>
+          <div className={`${styles.pin} ${styles.pinTerracotta}`} style={{ top: '32%', left: '72%', animationDelay: '1.25s' }}>
+            <div className={styles.pinIcon}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        {/* Walking route */}
-        <svg className={styles.route} viewBox="0 0 280 500" preserveAspectRatio="none">
-          <polyline points="56,260 100,260 100,175 188,175" fill="none" stroke="var(--sage-bright)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6,5" opacity="0.6" />
-        </svg>
+        {/* AI scan sweep */}
+        <div className={styles.scanLine} />
       </div>
 
       {/* Header overlay */}

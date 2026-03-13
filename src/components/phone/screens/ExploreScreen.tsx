@@ -6,19 +6,27 @@ export function ExploreScreen() {
     <div className={styles.root}>
       {/* Map */}
       <div className={styles.map}>
-        <div className={`${styles.road} ${styles.roadH} ${styles.roadMain}`} style={{ top: '45%' }} />
-        <div className={`${styles.road} ${styles.roadH}`} style={{ top: '65%' }} />
-        <div className={`${styles.road} ${styles.roadV} ${styles.roadMain}`} style={{ left: '41%' }} />
-        <div className={`${styles.road} ${styles.roadV}`} style={{ left: '74%' }} />
+        <div className={styles.mapContent}>
+          <div className={`${styles.road} ${styles.roadH} ${styles.roadMain}`} style={{ top: '45%' }} />
+          <div className={`${styles.road} ${styles.roadH}`} style={{ top: '65%' }} />
+          <div className={`${styles.road} ${styles.roadV} ${styles.roadMain}`} style={{ left: '41%' }} />
+          <div className={`${styles.road} ${styles.roadV}`} style={{ left: '74%' }} />
 
-        {/* Route */}
-        <svg className={styles.routeLine} viewBox="0 0 280 360" preserveAspectRatio="none">
-          <path d="M115,280 L115,230 Q115,220 125,220 L200,220 Q210,220 210,210 L210,160 Q210,150 200,150 L125,150 Q115,150 115,140 L115,80"
-            fill="none" stroke="var(--sage-bright)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+          {/* Route */}
+          <svg className={styles.routeSvg} viewBox="0 0 280 360" preserveAspectRatio="none">
+            <path className={styles.routeGlow}
+              d="M115,280 L115,230 Q115,220 125,220 L200,220 Q210,220 210,210 L210,160 Q210,150 200,150 L125,150 Q115,150 115,140 L115,80" />
+            <path className={styles.routeLine}
+              d="M115,280 L115,230 Q115,220 125,220 L200,220 Q210,220 210,210 L210,160 Q210,150 200,150 L125,150 Q115,150 115,140 L115,80" />
+          </svg>
 
-        {/* Current position dot */}
-        <div className={styles.currentDot} style={{ top: '22%', left: '40%' }} />
+          {/* Current position dot */}
+          <div className={styles.locationDot} style={{ top: '22%', left: '40%' }}>
+            <div className={styles.locationRing} />
+            <div className={styles.locationRing2} />
+            <div className={styles.locationCenter} />
+          </div>
+        </div>
       </div>
 
       {/* Score ticker */}
@@ -71,7 +79,7 @@ function ScoreTick({ label, value, pct, good }: { label: string; value: number; 
     <div className={styles.scoreTick}>
       <span className={styles.scoreTickLabel}>{label}</span>
       <div className={styles.scoreTickBar}>
-        <div className={styles.scoreTickFill} style={{ width: `${pct}%`, background: good ? 'var(--sage-bright)' : 'var(--amber)' }} />
+        <div className={styles.scoreTickFill} style={{ '--fill-width': `${pct}%`, background: good ? 'var(--sage-bright)' : 'var(--amber)' } as React.CSSProperties} />
       </div>
       <span className={styles.scoreTickValue}>{value.toFixed(1)}</span>
     </div>

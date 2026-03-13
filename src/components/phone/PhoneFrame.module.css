@@ -52,6 +52,37 @@
   z-index: 210;
 }
 
+/* Large variant for hero */
+.large {
+  width: 340px;
+  height: 736px;
+}
+
+.large .frame {
+  border-radius: 48px;
+}
+
+.large .screen {
+  border-radius: 42px;
+  top: 7px;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
+}
+
+.large .island {
+  width: 108px;
+  height: 28px;
+  top: 10px;
+  border-radius: 16px;
+}
+
+.large .homeIndicator {
+  width: 116px;
+  height: 5px;
+  bottom: 7px;
+}
+
 @media (max-width: 768px) {
   .container {
     width: 220px;

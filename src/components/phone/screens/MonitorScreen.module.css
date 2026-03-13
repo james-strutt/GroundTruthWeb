@@ -8,6 +8,8 @@
 .hero {
   background: var(--charcoal);
   padding: 38px 10px 12px;
+  opacity: 0;
+  animation: heroIn 0.5s ease 0.2s both;
 }
 
 .address {
@@ -24,18 +26,33 @@
   overflow: hidden;
 }
 
+/* AI scan sweep pseudo */
+.comparison::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: linear-gradient(90deg, transparent, rgba(194,65,12,0.06), transparent);
+  z-index: 5;
+  pointer-events: none;
+  animation: compScan 5s ease-in-out infinite 2s;
+}
+
 .compImg {
   position: absolute;
   inset: 0;
 }
 
 .before {
-  background: linear-gradient(135deg, #7a6a4a, #5a4a30);
+  background: url('https://rimh2.domainstatic.com.au/n7V_zvt6Vz_LzQr53t5C2Mf3dc4=/1680x720/filters:format(webp):quality(85)/2019466951_1_1_240903_074354-w3539-h2361') center/cover no-repeat;
   clip-path: inset(0 50% 0 0);
+  filter: sepia(0.3) brightness(0.85);
+  animation: beforeReveal 6s ease-in-out infinite 1s;
 }
 
 .after {
-  background: linear-gradient(135deg, #8a7a5a, #6a5a40);
+  background: url('https://rimh2.domainstatic.com.au/n7V_zvt6Vz_LzQr53t5C2Mf3dc4=/1680x720/filters:format(webp):quality(85)/2019466951_1_1_240903_074354-w3539-h2361') center/cover no-repeat;
 }
 
 .dateLabel {
@@ -47,6 +64,8 @@
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
+  opacity: 0;
+  animation: contentIn 0.4s ease 0.4s both;
 }
 
 .sliderHandle {
@@ -57,6 +76,7 @@
   width: 2px;
   background: #fff;
   z-index: 10;
+  animation: sliderOsc 6s ease-in-out infinite 1s;
 }
 
 .sliderKnob {
@@ -74,6 +94,7 @@
   font-size: 8px;
   color: var(--stone-700);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  animation: knobPulse 3s ease-in-out infinite;
 }
 
 /* Body */
@@ -90,6 +111,8 @@
   font-weight: 700;
   color: var(--stone-900);
   margin-bottom: 8px;
+  opacity: 0;
+  animation: contentIn 0.4s ease 0.5s both;
 }
 
 .changeCard {
@@ -101,6 +124,16 @@
   border: 1px solid var(--stone-200);
   border-radius: 8px;
   margin-bottom: 5px;
+  opacity: 0;
+  animation: contentIn 0.4s ease 0.7s both;
+}
+
+.changeCard ~ .changeCard {
+  animation-delay: 0.9s;
+}
+
+.changeCard ~ .changeCard ~ .changeCard {
+  animation-delay: 1.1s;
 }
 
 .confBar {
@@ -133,4 +166,42 @@
   border-radius: 4px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════ */
+
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sliderOsc {
+  0%, 100% { left: 50%; }
+  30%      { left: 75%; }
+  65%      { left: 30%; }
+}
+
+@keyframes beforeReveal {
+  0%, 100% { clip-path: inset(0 50% 0 0); }
+  30%      { clip-path: inset(0 25% 0 0); }
+  65%      { clip-path: inset(0 70% 0 0); }
+}
+
+@keyframes compScan {
+  0%   { left: -80px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes knobPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  50%      { box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 0 4px rgba(255,255,255,0.15); }
 }

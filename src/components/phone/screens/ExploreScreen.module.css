@@ -12,6 +12,7 @@
   overflow: hidden;
 }
 
+/* Topo grid with drift */
 .map::before {
   content: '';
   position: absolute;
@@ -19,6 +20,15 @@
   background:
     repeating-linear-gradient(0deg, transparent, transparent 30px, var(--topo-line) 30px, var(--topo-line) 31px),
     repeating-linear-gradient(90deg, transparent, transparent 40px, var(--topo-line) 40px, var(--topo-line) 41px);
+  animation: topoDrift 35s ease-in-out infinite;
+}
+
+/* Map content wrapper with gentle drift */
+.mapContent {
+  position: absolute;
+  inset: 0;
+  animation: mapDrift 28s ease-in-out infinite;
+  will-change: transform;
 }
 
 .road { position: absolute; background: rgba(255,255,255,0.6); z-index: 1; }
@@ -28,7 +38,7 @@
 .roadH.roadMain { height: 5px; }
 .roadV.roadMain { width: 5px; }
 
-.routeLine {
+.routeSvg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -36,15 +46,68 @@
   z-index: 4;
 }
 
-.currentDot {
+.routeGlow {
+  fill: none;
+  stroke: var(--sage-bright);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.2;
+  stroke-dasharray: 380;
+  stroke-dashoffset: 380;
+  animation: drawRoute 1.8s ease-out 0.5s both;
+}
+
+.routeLine {
+  fill: none;
+  stroke: var(--sage-bright);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 380;
+  stroke-dashoffset: 380;
+  animation: drawRoute 1.8s ease-out 0.5s both;
+}
+
+/* Location dot — replaces old currentDot */
+.locationDot {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: var(--terracotta);
+  z-index: 8;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: fadeIn 0.4s ease 2s forwards;
+}
+
+.locationCenter {
+  width: 12px;
+  height: 12px;
+  background: var(--sage-bright);
   border: 2px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(194,65,12,0.5);
-  z-index: 6;
+  box-shadow: 0 1px 6px rgba(101,163,13,0.4);
+  position: relative;
+  z-index: 3;
+}
+
+.locationRing,
+.locationRing2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: rgba(101,163,13,0.3);
+  z-index: 1;
+}
+
+.locationRing {
+  animation: locPulse 2.5s ease-out infinite 2.2s;
+}
+
+.locationRing2 {
+  animation: locPulse 2.5s ease-out infinite 3.4s;
 }
 
 /* Score ticker */
@@ -62,6 +125,8 @@
   gap: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   z-index: 10;
+  opacity: 0;
+  animation: tickerIn 0.4s ease 0.3s both;
 }
 
 .scoreTick {
@@ -88,8 +153,15 @@
 .scoreTickFill {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.8s ease;
+  width: 0% !important;
+  animation: barGrow 0.6s ease both;
 }
+
+/* Stagger score tick fills via nth-child on parent scoreTick */
+.scoreTick:nth-child(1) .scoreTickFill { animation-delay: 0.5s; }
+.scoreTick:nth-child(2) .scoreTickFill { animation-delay: 0.65s; }
+.scoreTick:nth-child(3) .scoreTickFill { animation-delay: 0.8s; }
+.scoreTick:nth-child(4) .scoreTickFill { animation-delay: 0.95s; }
 
 .scoreTickValue {
   font-family: 'JetBrains Mono', monospace;
@@ -112,6 +184,8 @@
   padding: 8px 10px 10px;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
   z-index: 30;
+  opacity: 0;
+  animation: sheetUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.8s both;
 }
 
 .handle {
@@ -142,6 +216,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--terracotta);
+  animation: obsPulse 2s ease-in-out infinite;
 }
 
 .obsBadge {
@@ -195,4 +270,61 @@
 
 .stop {
   background: var(--brick);
+}
+
+/* ═══════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════ */
+
+@keyframes mapDrift {
+  0%, 100% { transform: translate(0, 0); }
+  20%  { transform: translate(-5px, -3px); }
+  45%  { transform: translate(-2px, -6px); }
+  70%  { transform: translate(4px, -4px); }
+  85%  { transform: translate(2px, -1px); }
+}
+
+@keyframes topoDrift {
+  0%, 100% { background-position: 0 0, 0 0; }
+  33%  { background-position: 4px 3px, 4px 3px; }
+  66%  { background-position: -2px 5px, -2px 5px; }
+}
+
+@keyframes drawRoute {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes locPulse {
+  0%   { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes tickerIn {
+  from { opacity: 0; transform: translateY(-15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes obsPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.7; }
+  50%      { transform: scale(1.4); opacity: 1; }
+}
+
+@keyframes barGrow {
+  from { width: 0% !important; }
+  to   { width: var(--fill-width, 100%) !important; }
 }

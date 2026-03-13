@@ -8,6 +8,7 @@ import {
   MonitorScreen,
   ExploreScreen,
 } from './components/phone/screens';
+import { supabase } from './supabaseClient';
 import styles from './App.module.css';
 
 const FEATURES = [
@@ -53,7 +54,7 @@ function App() {
     <div>
       <Nav />
       <Hero />
-      <TrustBar />
+      <Divider />
       <FeaturesSection />
       <HowItWorks />
       <FinalCTA />
@@ -84,7 +85,6 @@ function Nav() {
 function Hero() {
   return (
     <section className={styles.hero} id="hero">
-      {/* Background topo pattern */}
       <div className={styles.heroBg} />
 
       <div className={styles.heroInner}>
@@ -100,7 +100,7 @@ function Hero() {
         </div>
 
         <div className={`${styles.heroPhone} fade-up delay-2`}>
-          <PhoneFrame>
+          <PhoneFrame size="large">
             <HomeScreen />
           </PhoneFrame>
         </div>
@@ -109,70 +109,18 @@ function Hero() {
   );
 }
 
-/* ── Trust bar ─────────────────── */
+/* ── Divider ───────────────────── */
 
-function TrustBar() {
-  return (
-    <section className={styles.trustBar}>
-      <div className={`${styles.trustInner} fade-up`}>
-        <TrustItem icon="layers" label="NSW spatial data" detail="Real-time planning, zoning & hazard layers" />
-        <TrustItem icon="brain" label="AI vision analysis" detail="Condition scoring & defect detection" />
-        <TrustItem icon="shield" label="Local-first storage" detail="Your data stays on your device" />
-        <TrustItem icon="target" label="GPS-verified" detail="Geotagged photos with compass bearing" />
-      </div>
-    </section>
-  );
+function Divider() {
+  return <div className={styles.divider} />;
 }
 
-function TrustItem({ icon, label, detail }: { icon: string; label: string; detail: string }) {
-  return (
-    <div className={styles.trustItem}>
-      <div className={styles.trustIcon}>
-        {icon === 'layers' && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
-            <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
-            <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
-          </svg>
-        )}
-        {icon === 'brain' && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
-            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
-            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
-            <path d="M17.599 6.5a3 3 0 0 0 .399-1.375" />
-            <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
-            <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
-            <path d="M19.938 10.5a4 4 0 0 1 .585.396" />
-            <path d="M6 18a4 4 0 0 1-1.967-.516" />
-            <path d="M19.967 17.484A4 4 0 0 1 18 18" />
-          </svg>
-        )}
-        {icon === 'shield' && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        )}
-        {icon === 'target' && (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="6" />
-            <circle cx="12" cy="12" r="2" />
-          </svg>
-        )}
-      </div>
-      <div>
-        <div className={styles.trustLabel}>{label}</div>
-        <div className={styles.trustDetail}>{detail}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Features ──────────────────── */
+/* ── Features (tabbed) ────────── */
 
 function FeaturesSection() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const feature = FEATURES[activeIdx];
+
   return (
     <section className={styles.features} id="features">
       <div className={`${styles.sectionHeader} fade-up`}>
@@ -183,24 +131,31 @@ function FeaturesSection() {
         </p>
       </div>
 
-      {FEATURES.map((feature, i) => (
-        <div
-          key={feature.id}
-          className={`${styles.featureRow} ${i % 2 !== 0 ? styles.featureRowReverse : ''} fade-up`}
-        >
-          <div className={styles.featurePhone}>
-            <PhoneFrame>
-              <feature.Screen />
-            </PhoneFrame>
-          </div>
-          <div className={styles.featureContent}>
-            <span className={styles.featureTag}>{feature.id.toUpperCase()}</span>
-            <h3 className={styles.featureTitle}>{feature.title}</h3>
-            <p className={styles.featureTagline}>{feature.tagline}</p>
-            <p className={styles.featureDesc}>{feature.description}</p>
-          </div>
+      <div className={styles.featureTabs}>
+        {FEATURES.map((f, i) => (
+          <button
+            key={f.id}
+            className={`${styles.featureTabBtn} ${i === activeIdx ? styles.featureTabBtnActive : ''}`}
+            onClick={() => setActiveIdx(i)}
+          >
+            {f.title}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.featurePanel} key={feature.id}>
+        <div className={styles.featurePhone}>
+          <PhoneFrame>
+            <feature.Screen />
+          </PhoneFrame>
         </div>
-      ))}
+        <div className={styles.featureContent}>
+          <span className={styles.featureTag}>{feature.id.toUpperCase()}</span>
+          <h3 className={styles.featureTitle}>{feature.title}</h3>
+          <p className={styles.featureTagline}>{feature.tagline}</p>
+          <p className={styles.featureDesc}>{feature.description}</p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -244,7 +199,7 @@ function FinalCTA() {
         <p className={styles.ctaSub}>
           GroundTruth is launching soon for iOS. Join the waitlist to get early access and shape the product.
         </p>
-        <WaitlistForm variant="dark" />
+        <WaitlistForm />
       </div>
     </section>
   );
@@ -256,13 +211,8 @@ function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
-        <div className={styles.footerBrand}>
-          <span className={styles.footerLogo}>GroundTruth</span>
-          <p className={styles.footerTagline}>AI-powered property field intelligence</p>
-        </div>
-        <div className={styles.footerMeta}>
-          <p>&copy; {new Date().getFullYear()} LandIQ Labs. All rights reserved.</p>
-        </div>
+        <span className={styles.footerLogo}>GroundTruth</span>
+        <p className={styles.footerTagline}>AI-powered property field intelligence</p>
       </div>
     </footer>
   );
@@ -270,18 +220,28 @@ function Footer() {
 
 /* ── Waitlist form ─────────────── */
 
-function WaitlistForm({ className = '', variant = 'light' }: { className?: string; variant?: 'light' | 'dark' }) {
+function WaitlistForm({ className = '' }: { className?: string }) {
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email) return;
-    // TODO: hook up to Supabase / API
-    setSubmitted(true);
+    if (!email || status === 'submitting') return;
+    setStatus('submitting');
+    const { error } = await supabase.from('waitlist').insert({ email });
+    if (error) {
+      if (error.code === '23505') {
+        setStatus('success');
+      } else {
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 3000);
+      }
+    } else {
+      setStatus('success');
+    }
   }
 
-  if (submitted) {
+  if (status === 'success') {
     return (
       <div className={`${styles.formSuccess} ${className}`}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sage-bright)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -294,7 +254,7 @@ function WaitlistForm({ className = '', variant = 'light' }: { className?: strin
 
   return (
     <form
-      className={`${styles.waitlistForm} ${variant === 'dark' ? styles.waitlistDark : ''} ${className}`}
+      className={`${styles.waitlistForm} ${className}`}
       onSubmit={handleSubmit}
     >
       <input
@@ -305,8 +265,8 @@ function WaitlistForm({ className = '', variant = 'light' }: { className?: strin
         onChange={(e) => setEmail(e.target.value)}
         className={styles.emailInput}
       />
-      <button type="submit" className={styles.submitBtn}>
-        Join the waitlist
+      <button type="submit" className={styles.submitBtn} disabled={status === 'submitting'}>
+        {status === 'submitting' ? 'Joining...' : status === 'error' ? 'Try again' : 'Join the waitlist'}
       </button>
     </form>
   );
