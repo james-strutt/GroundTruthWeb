@@ -8,7 +8,7 @@ import {
   MonitorScreen,
   ExploreScreen,
 } from './components/phone/screens';
-import { supabase } from './supabaseClient';
+import { insertWaitlistEmail } from './supabaseClient';
 import styles from './App.module.css';
 
 const FEATURES = [
@@ -228,7 +228,7 @@ function WaitlistForm({ className = '' }: { className?: string }) {
     e.preventDefault();
     if (!email || status === 'submitting') return;
     setStatus('submitting');
-    const { error } = await supabase.from('waitlist').insert({ email });
+    const { error } = await insertWaitlistEmail(email);
     if (error) {
       if (error.code === '23505') {
         setStatus('success');
