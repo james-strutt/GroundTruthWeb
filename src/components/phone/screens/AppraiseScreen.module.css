@@ -1,0 +1,286 @@
+.root {
+  position: absolute;
+  inset: 0;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.hero {
+  background: var(--charcoal);
+  padding: 38px 10px 14px;
+  color: #e8e2d9;
+}
+
+.subjectMini {
+  background: rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.subjectThumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #8B7355, #5a4a30);
+  flex-shrink: 0;
+}
+
+.subjectInfo h4 {
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+
+.subjectInfo p {
+  font-size: 8px;
+  opacity: 0.6;
+  margin-bottom: 3px;
+}
+
+.conditionTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(194,65,12,0.2);
+  padding: 1px 6px;
+  border-radius: 7px;
+  font-size: 8px;
+  font-weight: 600;
+  color: #e8a87c;
+}
+
+.body {
+  padding: 10px 10px calc(60px + 10px);
+  overflow-y: auto;
+  max-height: calc(100% - 100px);
+  scrollbar-width: none;
+}
+.body::-webkit-scrollbar { display: none; }
+
+.sectionCard {
+  background: var(--warm-white);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--stone-200);
+}
+
+.sectionLabel {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--stone-500);
+  margin-bottom: 8px;
+}
+
+.rangeViz {
+  position: relative;
+}
+
+.rangeLabel {
+  font-size: 7px;
+  color: var(--stone-500);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.rangeLabel.verified {
+  color: var(--terracotta);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.rangeBar {
+  height: 5px;
+  border-radius: 3px;
+}
+
+.rangeDesktop {
+  background: var(--stone-200);
+  width: 100%;
+}
+
+.rangeVerified {
+  background: linear-gradient(90deg, var(--terracotta), #e8a87c);
+  width: 40%;
+  margin-left: 18%;
+  box-shadow: 0 2px 6px rgba(194,65,12,0.25);
+}
+
+.rangeAmounts {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px;
+  color: var(--stone-500);
+  margin-top: 2px;
+}
+
+.bestEstimate {
+  text-align: center;
+  margin-top: 4px;
+}
+
+.bestMarker {
+  width: 2px;
+  height: 10px;
+  background: var(--stone-900);
+  margin: 0 auto 2px;
+}
+
+.bestAmount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--stone-900);
+}
+
+.bestLabel {
+  font-size: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--stone-500);
+}
+
+/* Confidence */
+.confidenceCard {
+  background: var(--warm-white);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--stone-200);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.confCircle {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.confCircle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.confBg {
+  fill: none;
+  stroke: var(--stone-200);
+  stroke-width: 4;
+}
+
+.confFill {
+  fill: none;
+  stroke: var(--terracotta);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 213.6;
+  stroke-dashoffset: 85.4;
+}
+
+.confText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.confNum {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--terracotta);
+  line-height: 1;
+}
+
+.confOf {
+  font-size: 7px;
+  color: var(--stone-500);
+}
+
+.confInfo h4 {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--stone-900);
+  margin-bottom: 2px;
+}
+
+.confInfo p {
+  font-size: 8px;
+  color: var(--stone-600);
+  line-height: 1.4;
+}
+
+/* Comps */
+.compsLabel {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--stone-500);
+  margin-bottom: 6px;
+}
+
+.compCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--warm-white);
+  border: 1px solid var(--stone-200);
+  border-radius: 8px;
+  margin-bottom: 5px;
+}
+
+.compIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--terracotta-light);
+  color: var(--terracotta);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.compDetails { flex: 1; min-width: 0; }
+
+.compAddr {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--stone-900);
+}
+
+.compMeta {
+  font-size: 7px;
+  color: var(--stone-500);
+}
+
+.compPriceCol {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.compPrice {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--stone-900);
+}
+
+.compAdj {
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.adjUp { color: var(--sage); }
+.adjDown { color: var(--terracotta); }

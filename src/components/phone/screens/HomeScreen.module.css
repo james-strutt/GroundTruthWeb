@@ -1,0 +1,187 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ── Map ─────────────────── */
+.map {
+  position: absolute;
+  inset: 0;
+  bottom: 60px;
+  background: #ddd8ce;
+  overflow: hidden;
+}
+
+.map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 30px, var(--topo-line) 30px, var(--topo-line) 31px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, var(--topo-line) 40px, var(--topo-line) 41px);
+}
+
+.map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 200px 150px at 30% 40%, rgba(180,175,160,0.4), transparent),
+    radial-gradient(ellipse 150px 200px at 70% 60%, rgba(190,185,170,0.3), transparent);
+}
+
+/* Roads */
+.road { position: absolute; background: rgba(255,255,255,0.6); z-index: 1; }
+.roadH { height: 3px; left: 0; right: 0; }
+.roadV { width: 3px; top: 0; bottom: 0; }
+.roadMain { background: rgba(255,255,255,0.75); }
+.roadH.roadMain { height: 5px; }
+.roadV.roadMain { width: 5px; }
+
+/* Pins */
+.pin {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+  z-index: 5;
+}
+
+.pinIcon {
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pinTerracotta { background: var(--terracotta); }
+.pinDark { background: var(--stone-700); }
+.pinGold { background: var(--amber); }
+.pinGreen { background: var(--sage-bright); }
+
+.route {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Header overlay ──────── */
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 38px 14px 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.greeting {
+  font-size: 9px;
+  color: var(--stone-600);
+}
+
+.title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--charcoal);
+}
+
+.profileBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(250,248,245,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Bottom sheet ────────── */
+.sheet {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background: rgba(250,248,245,0.96);
+  backdrop-filter: blur(20px);
+  border-radius: 14px 14px 0 0;
+  padding: 8px 10px 10px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  z-index: 30;
+  max-height: 180px;
+  overflow: hidden;
+}
+
+.handle {
+  width: 26px;
+  height: 3px;
+  background: var(--stone-300);
+  border-radius: 2px;
+  margin: 0 auto 8px;
+}
+
+.sheetTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--stone-900);
+  margin-bottom: 6px;
+}
+
+/* ── Activity items ──────── */
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--stone-200);
+}
+
+.activityItem:last-child { border-bottom: none; }
+
+.activityIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activityText {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityText strong {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--stone-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityText small {
+  font-size: 8px;
+  color: var(--stone-500);
+}
+
+.activityTime {
+  font-size: 8px;
+  color: var(--stone-400);
+  white-space: nowrap;
+}

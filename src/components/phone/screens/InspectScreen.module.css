@@ -1,0 +1,226 @@
+.root {
+  position: absolute;
+  inset: 0;
+  background: #0a0908;
+  overflow: hidden;
+}
+
+.viewfinder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(60px + 160px);
+  background: radial-gradient(ellipse at center, #1a1815, #0a0908);
+  overflow: hidden;
+}
+
+.lotLabel {
+  position: absolute;
+  top: 56px;
+  left: 26px;
+  font-size: 6px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(194,65,12,0.65);
+}
+
+.lotBoundary {
+  position: absolute;
+  top: 68px;
+  left: 26px;
+  right: 40px;
+  bottom: 20px;
+  border: 1.5px solid rgba(194,65,12,0.45);
+  border-radius: 2px;
+  background: rgba(194,65,12,0.04);
+}
+
+.northArrow {
+  position: absolute;
+  top: 72px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  background: rgba(10,9,8,0.5);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.12);
+  z-index: 10;
+}
+
+.northN {
+  font-size: 7px;
+  font-weight: 800;
+  color: var(--terracotta);
+  line-height: 1;
+}
+
+.northTri {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 4px solid var(--terracotta);
+  position: absolute;
+  top: 3px;
+}
+
+.hazPills {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.vfPill {
+  padding: 3px 7px;
+  border-radius: 9px;
+  font-size: 7px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.safe {
+  background: rgba(63,98,18,0.25);
+  color: #a3d977;
+  border: 1px solid rgba(63,98,18,0.3);
+}
+
+.moderate {
+  background: rgba(180,83,9,0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(180,83,9,0.3);
+}
+
+/* Controls panel */
+.controls {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  height: 160px;
+  background: #111010;
+  padding: 6px 10px 8px;
+}
+
+.tagScroll {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.tagScroll::-webkit-scrollbar { display: none; }
+
+.tagChip {
+  padding: 4px 8px;
+  border-radius: 14px;
+  font-size: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(232,226,217,0.5);
+  background: none;
+}
+
+.tagActive {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: #fff;
+}
+
+.captureRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.micBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(232,226,217,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shutter {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid #e8e2d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shutterInner {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  background: #e8e2d9;
+  border-radius: 50%;
+}
+
+.lastPhoto {
+  background: rgba(255,255,255,0.05);
+  border-radius: 7px;
+  padding: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.lastThumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #5a4a30, #3a3020);
+  flex-shrink: 0;
+}
+
+.lastText {
+  font-size: 7px;
+  color: rgba(232,226,217,0.5);
+  line-height: 1.4;
+}
+
+.aiScore {
+  font-family: 'JetBrains Mono', monospace;
+  color: #e8a87c;
+  font-weight: 600;
+}
+
+.progressDots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+
+.dotFilled { background: var(--terracotta); }
+.dotCurrent {
+  background: #e8a87c;
+  box-shadow: 0 0 4px rgba(232,168,124,0.4);
+}

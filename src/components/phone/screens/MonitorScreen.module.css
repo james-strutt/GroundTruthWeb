@@ -1,0 +1,136 @@
+.root {
+  position: absolute;
+  inset: 0;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.hero {
+  background: var(--charcoal);
+  padding: 38px 10px 12px;
+}
+
+.address {
+  font-family: 'DM Serif Display', serif;
+  font-size: 13px;
+  color: #e8e2d9;
+  font-weight: 400;
+}
+
+/* Comparison */
+.comparison {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+}
+
+.compImg {
+  position: absolute;
+  inset: 0;
+}
+
+.before {
+  background: linear-gradient(135deg, #7a6a4a, #5a4a30);
+  clip-path: inset(0 50% 0 0);
+}
+
+.after {
+  background: linear-gradient(135deg, #8a7a5a, #6a5a40);
+}
+
+.dateLabel {
+  position: absolute;
+  top: 6px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sliderHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: #fff;
+  z-index: 10;
+}
+
+.sliderKnob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--stone-700);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Body */
+.body {
+  padding: 10px 10px calc(60px + 10px);
+  overflow-y: auto;
+  max-height: calc(100% - 200px);
+  scrollbar-width: none;
+}
+.body::-webkit-scrollbar { display: none; }
+
+.changesTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--stone-900);
+  margin-bottom: 8px;
+}
+
+.changeCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--warm-white);
+  border: 1px solid var(--stone-200);
+  border-radius: 8px;
+  margin-bottom: 5px;
+}
+
+.confBar {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.confHigh { background: var(--terracotta); }
+.confMedium { background: var(--amber); }
+
+.changeInfo { flex: 1; min-width: 0; }
+
+.changeDesc {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--stone-900);
+}
+
+.changeConf {
+  font-size: 7px;
+  color: var(--stone-500);
+}
+
+.daBadge {
+  font-size: 7px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

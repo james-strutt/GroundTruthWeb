@@ -1,0 +1,198 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  bottom: 60px;
+  background: #ddd8ce;
+  overflow: hidden;
+}
+
+.map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 30px, var(--topo-line) 30px, var(--topo-line) 31px),
+    repeating-linear-gradient(90deg, transparent, transparent 40px, var(--topo-line) 40px, var(--topo-line) 41px);
+}
+
+.road { position: absolute; background: rgba(255,255,255,0.6); z-index: 1; }
+.roadH { height: 3px; left: 0; right: 0; }
+.roadV { width: 3px; top: 0; bottom: 0; }
+.roadMain { background: rgba(255,255,255,0.75); }
+.roadH.roadMain { height: 5px; }
+.roadV.roadMain { width: 5px; }
+
+.routeLine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+}
+
+.currentDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--terracotta);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(194,65,12,0.5);
+  z-index: 6;
+}
+
+/* Score ticker */
+.scoreTicker {
+  position: absolute;
+  top: 40px;
+  left: 8px;
+  right: 8px;
+  background: rgba(255,253,249,0.92);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  z-index: 10;
+}
+
+.scoreTick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreTickLabel {
+  font-size: 8px;
+  color: var(--stone-600);
+  width: 58px;
+  flex-shrink: 0;
+}
+
+.scoreTickBar {
+  flex: 1;
+  height: 4px;
+  background: var(--stone-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.scoreTickFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+.scoreTickValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--stone-700);
+  width: 20px;
+  text-align: right;
+}
+
+/* Bottom sheet */
+.sheet {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background: rgba(250,248,245,0.96);
+  backdrop-filter: blur(20px);
+  border-radius: 14px 14px 0 0;
+  padding: 8px 10px 10px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  z-index: 30;
+}
+
+.handle {
+  width: 26px;
+  height: 3px;
+  background: var(--stone-300);
+  border-radius: 2px;
+  margin: 0 auto 8px;
+}
+
+.observation {
+  background: var(--warm-white);
+  border: 1px solid var(--stone-200);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.obsHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.obsDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--terracotta);
+}
+
+.obsBadge {
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--terracotta);
+}
+
+.obsText {
+  font-size: 8px;
+  color: var(--stone-600);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.exploreControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.momentBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--warm-white);
+  border: 1px solid var(--stone-200);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--stone-700);
+}
+
+.ctrlBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.pause {
+  background: var(--stone-200);
+  color: var(--stone-700);
+}
+
+.stop {
+  background: var(--brick);
+}
