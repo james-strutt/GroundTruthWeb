@@ -1,0 +1,121 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.thumbnail {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.thumbnailImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.addressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.addressIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.address {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.star {
+  color: #D97706;
+  font-size: 1rem;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.suburb {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.separator {
+  color: var(--text-muted);
+  font-size: 0.625rem;
+}
+
+.dateIcon {
+  color: var(--text-muted);
+}
+
+.date {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.metricBox {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.metricLabel {
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metricValue {
+  font-family: var(--font-data);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

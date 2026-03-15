@@ -73,7 +73,7 @@ function Nav() {
         <div className={styles.navLinks}>
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#waitlist" className={styles.navCta}>Join the waitlist</a>
+          <a href="/login" className={styles.navCta}>Sign in</a>
         </div>
       </div>
     </nav>

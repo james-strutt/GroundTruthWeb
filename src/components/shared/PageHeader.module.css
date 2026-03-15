@@ -1,0 +1,27 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.icon {
+  color: #C2410C;
+  display: flex;
+}
+
+.title {
+  font-family: var(--font-brand);
+  font-size: 1.375rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.count {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}

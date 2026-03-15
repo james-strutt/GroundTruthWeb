@@ -1,0 +1,30 @@
+.page { max-width: 1100px; }
+.loading { color: var(--text-muted); font-family: var(--font-body); }
+.backButton { display: flex; align-items: center; gap: 0.4rem; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 0.875rem; cursor: pointer; padding: 0; margin-bottom: 1.25rem; }
+.backButton:hover { color: var(--text-primary); }
+.heroSection { display: flex; gap: 1.25rem; margin-bottom: 1.5rem; }
+.photoContainer { width: 200px; height: 150px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+.photo { width: 100%; height: 100%; object-fit: cover; }
+.heroInfo { display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; }
+.address { font-family: var(--font-brand); font-size: 1.5rem; color: var(--text-primary); margin: 0; }
+.meta { display: flex; align-items: center; gap: 0.4rem; font-family: var(--font-body); font-size: 0.8125rem; color: var(--text-muted); }
+.dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+.card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1.25rem; }
+.cardTitle { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+.summary { font-family: var(--font-body); font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 1rem; }
+.detailGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.detailItem { display: flex; flex-direction: column; gap: 0.15rem; }
+.detailLabel { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.detailValue { font-family: var(--font-data); font-size: 0.875rem; color: var(--text-primary); font-weight: 500; }
+.list { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem; font-family: var(--font-body); font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.4; }
+.riskItem { color: #EF4444; }
+.confidenceBar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-bottom: 0.35rem; }
+.confidenceFill { height: 100%; background: #65A30D; border-radius: 3px; transition: width 0.3s; }
+.confidenceLabel { font-family: var(--font-data); font-size: 0.8125rem; color: var(--text-secondary); }
+
+@media (max-width: 640px) {
+  .heroSection { flex-direction: column; }
+  .photoContainer { width: 100%; height: 200px; }
+  .detailGrid { grid-template-columns: repeat(2, 1fr); }
+}

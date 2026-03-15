@@ -1,0 +1,74 @@
+.empty {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.group {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.6rem 0.65rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.groupHeader:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chevron {
+  color: var(--text-muted);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.pinIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.groupAddress {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupCount {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.groupCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.35rem;
+  padding: 0 0.5rem 0.5rem;
+}

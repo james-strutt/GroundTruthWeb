@@ -1,0 +1,110 @@
+.panel {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  width: 200px;
+  background: rgba(18, 17, 16, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  z-index: 5;
+  overflow: hidden;
+}
+
+.title {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.6rem 0.25rem;
+}
+
+.group {
+  padding: 0.15rem 0;
+}
+
+.group + .group {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.groupLabel {
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.6rem 0.1rem;
+  opacity: 0.6;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  transition: background 0.1s;
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rowActive {
+  background: rgba(194, 65, 12, 0.06);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+.toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.eyeOn {
+  color: #C2410C;
+}
+
+.eyeOff {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  transition: color 0.1s;
+}
+
+.labelActive {
+  color: var(--text-primary);
+}
+
+.slider {
+  width: 48px;
+  height: 3px;
+  accent-color: #C2410C;
+  cursor: pointer;
+  flex-shrink: 0;
+}
