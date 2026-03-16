@@ -11,7 +11,7 @@ import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { Inspection } from '../../types/common';
+import type { Inspection, InspectionPhoto } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
 
 interface PhotoAnalysis {
@@ -139,7 +139,7 @@ export default function InspectionDetailPage() {
       const updatedPhotos = prev.photos.map((p, i) => {
         if (i !== photoIdx) return p;
         const existing = (p.analysis ?? {}) as Record<string, unknown>;
-        return { ...p, analysis: { ...existing, [key]: parsed } };
+        return { ...p, analysis: { ...existing, [key]: parsed } as unknown as InspectionPhoto['analysis'] };
       });
       return { ...prev, photos: updatedPhotos };
     });
@@ -361,7 +361,7 @@ export default function InspectionDetailPage() {
                               setRecord((prev) => {
                                 if (!prev) return prev;
                                 const photos = prev.photos.map((ph, idx) =>
-                                  idx === i ? { ...ph, analysis: { ...ph.analysis, narrative: v } } : ph,
+                                  idx === i ? { ...ph, analysis: { ...ph.analysis, narrative: v } as unknown as InspectionPhoto['analysis'] } : ph,
                                 );
                                 return { ...prev, photos };
                               });

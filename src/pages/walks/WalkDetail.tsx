@@ -283,7 +283,7 @@ export default function WalkDetailPage() {
             }}
             onAcceptAll={async () => {
               await updateWalkField(record.id, { street_score: pendingStreetScore });
-              setRecord((prev) => prev ? { ...prev, streetScore: pendingStreetScore as WalkSession['streetScore'] } : prev);
+              setRecord((prev) => prev ? { ...prev, streetScore: pendingStreetScore as unknown as WalkSession['streetScore'] } : prev);
               setPendingStreetScore(null);
             }}
             onRejectAll={() => setPendingStreetScore(null)}
