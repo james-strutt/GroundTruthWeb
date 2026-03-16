@@ -21,6 +21,14 @@ export interface GroupedProperty {
   thumbnailUrl: string | null;
 }
 
+/* ---------- Walk routes (for dashboard map) ---------- */
+
+export interface WalkRoute {
+  id: string;
+  title: string;
+  route: [number, number][];
+}
+
 /* ---------- Map pins ---------- */
 
 export type FeatureType = 'snap' | 'inspect' | 'appraise' | 'monitor' | 'explore';

@@ -59,7 +59,7 @@ export default function PropertyListPage() {
                 </div>
                 <div className={styles.badges}>
                   {p.snapCount > 0 && (
-                    <span className={styles.badge} style={{ color: '#C2410C' }}>
+                    <span className={styles.badge} style={{ color: '#D4653B' }}>
                       <Camera size={12} /> {p.snapCount}
                     </span>
                   )}

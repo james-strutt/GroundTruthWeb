@@ -16,8 +16,8 @@ export const colours = {
   cream: '#FAF8F5',
   warmWhite: '#FFFDF9',
 
-  terracotta: '#C2410C',
-  terracottaDark: '#9A3412',
+  terracotta: '#D4653B',
+  terracottaDark: '#B5472A',
   terracottaLight: '#FFF7ED',
   copper: '#B45309',
   sage: '#3F6212',

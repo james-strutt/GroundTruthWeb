@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Ruler } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Ruler, Trash2, RefreshCw } from 'lucide-react';
 import Map, { Source, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getWalk, updateWalkField } from '../../services/api';
+import { getWalk, updateWalkField, deleteWalk } from '../../services/api';
+import { reanalyseWalkPhoto } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
+import { InlineDiff } from '../../components/shared/InlineDiff';
 import { colours } from '../../theme';
 import type { WalkSession } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
@@ -34,11 +36,33 @@ export default function WalkDetailPage() {
   const navigate = useNavigate();
   const [record, setRecord] = useState<WalkSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReanalysing, setIsReanalysing] = useState(false);
+  const [pendingNarrative, setPendingNarrative] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     void getWalk(id).then((d) => { setRecord(d); setLoading(false); });
   }, [id]);
+
+  async function handleReanalyse() {
+    if (!record || record.photos.length === 0 || isReanalysing) return;
+    const photoUrl = record.photos[0]?.uri;
+    if (!photoUrl || !photoUrl.startsWith('http')) {
+      alert('Photos not synced to cloud. Re-sync from the iOS app first.');
+      return;
+    }
+    setIsReanalysing(true);
+    try {
+      const result = await reanalyseWalkPhoto(photoUrl, record.title || record.suburb);
+      const narrative = (result['notableFeatures'] as string[] ?? []).join('. ') +
+        '. ' + (result['concerns'] as string[] ?? []).join('. ');
+      if (narrative.trim().length > 2) setPendingNarrative(narrative);
+    } catch (err: unknown) {
+      alert(`Re-analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsReanalysing(false);
+    }
+  }
 
   if (loading) return <p className={styles.loading}>Loading...</p>;
   if (!record) return <p className={styles.loading}>Walk session not found.</p>;
@@ -58,9 +82,14 @@ export default function WalkDetailPage() {
 
   return (
     <div className={styles.page}>
-      <button className={styles.backButton} onClick={() => navigate('/app/walks')}>
-        <ArrowLeft size={18} /> Back to Walks
-      </button>
+      <div className={styles.topBar}>
+        <button className={styles.backButton} onClick={() => navigate('/app/walks')}>
+          <ArrowLeft size={18} /> Back to Walks
+        </button>
+        <button className={styles.deleteButton} onClick={async () => { if (window.confirm('Delete this walk session?')) { await deleteWalk(record.id); navigate('/app/walks'); } }}>
+          <Trash2 size={14} /> Delete
+        </button>
+      </div>
 
       <div className={styles.heroInfo}>
         <h1 className={styles.address}>{record.title || record.suburb}</h1>
@@ -70,6 +99,38 @@ export default function WalkDetailPage() {
           {new Date(record.startedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
         </div>
       </div>
+
+      {/* Re-analyse button */}
+      {record.photos.length > 0 && (
+        <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
+          <button className={styles.reanalyseBtn} onClick={() => void handleReanalyse()} disabled={isReanalysing}>
+            <RefreshCw size={14} className={isReanalysing ? styles.spinning : ''} />
+            {isReanalysing ? 'Analysing...' : 'Re-analyse with AI'}
+          </button>
+        </div>
+      )}
+
+      {/* Pending narrative diff */}
+      {pendingNarrative && (
+        <div style={{ marginBottom: '1rem' }}>
+          <InlineDiff
+            title="AI Re-analysis"
+            fields={[{ key: 'narrative', label: 'Analysis Narrative', oldValue: record.analysisNarrative ?? '', newValue: pendingNarrative }]}
+            onAccept={async (_key, value) => {
+              await updateWalkField(record.id, { analysis_narrative: value });
+              setRecord((prev) => prev ? { ...prev, analysisNarrative: value } : prev);
+              setPendingNarrative(null);
+            }}
+            onReject={() => setPendingNarrative(null)}
+            onAcceptAll={async () => {
+              await updateWalkField(record.id, { analysis_narrative: pendingNarrative });
+              setRecord((prev) => prev ? { ...prev, analysisNarrative: pendingNarrative } : prev);
+              setPendingNarrative(null);
+            }}
+            onRejectAll={() => setPendingNarrative(null)}
+          />
+        </div>
+      )}
 
       {/* Walk metrics */}
       <div className={styles.card} style={{ marginTop: '1rem' }}>

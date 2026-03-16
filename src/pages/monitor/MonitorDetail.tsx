@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, AlertCircle } from 'lucide-react';
-import { getWatched } from '../../services/api';
+import { ArrowLeft, MapPin, AlertCircle, Trash2 } from 'lucide-react';
+import { getWatched, deleteWatched } from '../../services/api';
+import { ClickableImage } from '../../components/shared/ClickableImage';
 import type { WatchedProperty } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
 
@@ -23,14 +24,19 @@ export default function MonitorDetailPage() {
 
   return (
     <div className={styles.page}>
-      <button className={styles.backButton} onClick={() => navigate('/app/monitor')}>
-        <ArrowLeft size={18} /> Back to Monitor
-      </button>
+      <div className={styles.topBar}>
+        <button className={styles.backButton} onClick={() => navigate('/app/monitor')}>
+          <ArrowLeft size={18} /> Back to Monitor
+        </button>
+        <button className={styles.deleteButton} onClick={async () => { if (window.confirm('Delete this monitored property?')) { await deleteWatched(record.id); navigate('/app/monitor'); } }}>
+          <Trash2 size={14} /> Delete
+        </button>
+      </div>
 
       <div className={styles.heroSection}>
         {record.latestPhotoUrl && (
           <div className={styles.photoContainer}>
-            <img src={record.latestPhotoUrl} alt="" className={styles.photo} />
+            <ClickableImage src={record.latestPhotoUrl} alt="" className={styles.photo} />
           </div>
         )}
         <div className={styles.heroInfo}>

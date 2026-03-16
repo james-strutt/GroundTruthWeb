@@ -38,7 +38,7 @@ export default function AppraisalListPage() {
               date={a.createdAt}
               metric={a.priceEstimate ? formatCompact(a.priceEstimate.estimatedValue) : undefined}
               metricLabel="Estimate"
-              metricColour="#C2410C"
+              metricColour="#D4653B"
               isFavourite={a.isFavourite}
             />
           )}

@@ -10,12 +10,14 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import type { MapLayerMouseEvent } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Building2, Camera, ClipboardCheck, BarChart3, Eye, Footprints, MapPin as MapPinIcon, ChevronDown, ChevronRight } from 'lucide-react';
-import { getAllPins, getRecentActivity } from '../services/api';
+import { getAllPins, getRecentActivity, getWalkRoutes } from '../services/api';
 import { colours } from '../theme';
 import { LayerControl } from '../components/map/LayerControl';
 import { DEFAULT_LAYERS, type SpatialLayer } from '../components/map/layerConstants';
 import { MapLegend } from '../components/map/MapLegend';
 import { fetchDAsInBounds, type DA } from '../services/daService';
+import { MeasureTools, type MeasureMode } from '../components/map/MeasureTools';
+import { fetchTrainStationsInBounds, fetchAllRailwayLines, type TrainStation } from '../services/trainStationService';
 import type { MapPin, ActivityItem, FeatureType } from '../types/common';
 import styles from './Dashboard.module.css';
 
@@ -98,14 +100,22 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
   const [pins, setPins] = useState<MapPin[]>([]);
+  const [walkRoutes, setWalkRoutes] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [buildings3d, setBuildings3d] = useState(false);
   const [spatialLayers, setSpatialLayers] = useState<SpatialLayer[]>(DEFAULT_LAYERS);
   const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null);
   const [expandedProperty, setExpandedProperty] = useState<string | null>(null);
+  const [measureMode, setMeasureMode] = useState<MeasureMode>('none');
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+  const [cursorPos, setCursorPos] = useState<[number, number] | null>(null);
+  const [measureFinished, setMeasureFinished] = useState(false);
   const [daPoints, setDaPoints] = useState<DA[]>([]);
+  const [trainStations, setTrainStations] = useState<TrainStation[]>([]);
+  const [railwayGeoJson, setRailwayGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
   const daDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const stationsDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const isDaLayerActive = spatialLayers.some((l) => l.id === 'das' && l.visible);
 
@@ -134,6 +144,40 @@ export default function DashboardPage() {
     }, 500);
     return () => { if (daDebounceRef.current) clearTimeout(daDebounceRef.current); };
   }, [isDaLayerActive, mapBounds, isDaZoomedIn]);
+
+  // Fetch train stations when layer active and bounds change
+  const isStationsLayerActive = spatialLayers.some((l) => l.id === 'train-stations' && l.visible);
+
+  useEffect(() => {
+    if (!isStationsLayerActive || !mapBounds) {
+      setTrainStations([]);
+      return;
+    }
+    if (stationsDebounceRef.current) clearTimeout(stationsDebounceRef.current);
+    stationsDebounceRef.current = setTimeout(() => {
+      void fetchTrainStationsInBounds(mapBounds.west, mapBounds.south, mapBounds.east, mapBounds.north).then((s) => {
+        setTrainStations(s);
+      });
+    }, 400);
+    return () => { if (stationsDebounceRef.current) clearTimeout(stationsDebounceRef.current); };
+  }, [isStationsLayerActive, mapBounds]);
+
+  // Fetch all railway lines once when layer activated (cached)
+  const isRailwayLayerActive = spatialLayers.some((l) => l.id === 'railway' && l.visible);
+
+  useEffect(() => {
+    if (!isRailwayLayerActive) return;
+    void fetchAllRailwayLines().then(setRailwayGeoJson);
+  }, [isRailwayLayerActive]);
+
+  const stationsGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: trainStations.map((s, i) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [s.longitude, s.latitude] },
+      properties: { id: `station-${i}`, name: s.name },
+    })),
+  };
 
   const daGeoJson: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
@@ -167,10 +211,18 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [p, a] = await Promise.all([getAllPins(), getRecentActivity()]);
+      const [p, a, w] = await Promise.all([getAllPins(), getRecentActivity(), getWalkRoutes()]);
       if (!cancelled) {
         setPins(p);
         setActivity(a);
+        setWalkRoutes({
+          type: 'FeatureCollection',
+          features: w.map((walk) => ({
+            type: 'Feature' as const,
+            properties: { id: walk.id, title: walk.title },
+            geometry: { type: 'LineString' as const, coordinates: walk.route },
+          })),
+        });
         setIsLoading(false);
       }
     })();
@@ -183,8 +235,12 @@ export default function DashboardPage() {
 
     if (buildings3d) {
       if (map.getLayer(BUILDINGS_LAYER_ID)) map.removeLayer(BUILDINGS_LAYER_ID);
+      // Remove terrain
+      map.setTerrain(null);
+      if (map.getSource('mapbox-terrain-dem')) map.removeSource('mapbox-terrain-dem');
       setBuildings3d(false);
     } else {
+      // Add 3D buildings
       if (!map.getLayer(BUILDINGS_LAYER_ID)) {
         map.addLayer({
           id: BUILDINGS_LAYER_ID,
@@ -209,6 +265,16 @@ export default function DashboardPage() {
           },
         });
       }
+      // Add terrain
+      if (!map.getSource('mapbox-terrain-dem')) {
+        map.addSource('mapbox-terrain-dem', {
+          type: 'raster-dem',
+          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          tileSize: 512,
+          maxzoom: 14,
+        });
+      }
+      map.setTerrain({ source: 'mapbox-terrain-dem', exaggeration: 1.5 });
       setBuildings3d(true);
     }
   }, [buildings3d]);
@@ -265,12 +331,147 @@ export default function DashboardPage() {
   };
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
+  // Measurement helpers
+  function haversineDist(a: [number, number], b: [number, number]): number {
+    const R = 6371000;
+    const dLat = (b[1] - a[1]) * Math.PI / 180;
+    const dLon = (b[0] - a[0]) * Math.PI / 180;
+    const lat1 = a[1] * Math.PI / 180;
+    const lat2 = b[1] * Math.PI / 180;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  }
+
+  function fmtDist(m: number): string {
+    if (m < 1000) return `${Math.round(m)} m`;
+    return `${(m / 1000).toFixed(2)} km`;
+  }
+
+  function fmtArea(sqm: number): string {
+    if (sqm < 10_000) return `${Math.round(sqm).toLocaleString()} m\u00B2`;
+    return `${(sqm / 10_000).toFixed(2)} ha`;
+  }
+
+  // Include cursor for live preview line (not when finished)
+  const livePoints = cursorPos && measureMode !== 'none' && !measureFinished && measurePoints.length > 0
+    ? [...measurePoints, cursorPos]
+    : measurePoints;
+
+  // Per-segment distances
+  const segmentLabels: GeoJSON.Feature[] = [];
+  const allSegs = measureMode === 'polygon' && livePoints.length >= 3
+    ? [...livePoints, livePoints[0]!]
+    : livePoints;
+
+  let totalDist = 0;
+  for (let i = 1; i < allSegs.length; i++) {
+    const a = allSegs[i - 1]!;
+    const b = allSegs[i]!;
+    const d = haversineDist(a, b);
+    totalDist += d;
+    segmentLabels.push({
+      type: 'Feature',
+      properties: { label: fmtDist(d) },
+      geometry: { type: 'Point', coordinates: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] },
+    });
+  }
+
+  const measureDistance = totalDist > 0 ? totalDist : null;
+
+  const measureArea = measureMode === 'polygon' && livePoints.length >= 3
+    ? Math.abs(livePoints.reduce((sum, pt, i) => {
+        const next = livePoints[(i + 1) % livePoints.length]!;
+        return sum + (pt[0] * next[1] - next[0] * pt[1]);
+      }, 0)) / 2 * 111320 * 111320 * Math.cos((livePoints[0]![1]) * Math.PI / 180)
+    : null;
+
+  // Area centroid label
+  if (measureArea && livePoints.length >= 3) {
+    const cx = livePoints.reduce((s, p) => s + p[0], 0) / livePoints.length;
+    const cy = livePoints.reduce((s, p) => s + p[1], 0) / livePoints.length;
+    segmentLabels.push({
+      type: 'Feature',
+      properties: { label: fmtArea(measureArea), isArea: true },
+      geometry: { type: 'Point', coordinates: [cx, cy] },
+    });
+  }
+
+  // GeoJSON for the shape (line or polygon)
+  const measureGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: livePoints.length >= 2 ? [{
+      type: 'Feature',
+      properties: {},
+      geometry: measureMode === 'polygon' && livePoints.length >= 3
+        ? { type: 'Polygon', coordinates: [[...livePoints, livePoints[0]!]] }
+        : { type: 'LineString', coordinates: livePoints },
+    }] : [],
+  };
+
+  // GeoJSON for vertex dots
+  const measurePointsGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: measurePoints.map((pt, i) => ({
+      type: 'Feature' as const,
+      properties: { index: i },
+      geometry: { type: 'Point' as const, coordinates: pt },
+    })),
+  };
+
+  // GeoJSON for segment distance labels
+  const measureLabelsGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: segmentLabels,
+  };
+
+  const lastClickTimeRef = useRef(0);
+
   function handleMapClick(e: MapLayerMouseEvent) {
+    if (measureMode !== 'none' && !measureFinished) {
+      const now = Date.now();
+      const timeSinceLast = now - lastClickTimeRef.current;
+      lastClickTimeRef.current = now;
+
+      // Double-click detected (< 350ms between clicks)
+      if (timeSinceLast < 350 && measurePoints.length >= 2) {
+        // Remove the point just added by this click
+        setMeasurePoints((prev) => prev.slice(0, -1));
+        setCursorPos(null);
+        setMeasureFinished(true);
+        return;
+      }
+
+      const { lng, lat } = e.lngLat;
+      setMeasurePoints((prev) => [...prev, [lng, lat]]);
+      return;
+    }
+
     const feature = e.features?.[0];
     if (!feature?.properties) return;
     const fType = feature.properties['featureType'] as FeatureType;
     const fId = feature.properties['id'] as string;
     if (fType && fId) navigate(`${FEATURE_ROUTES[fType]}/${fId}`);
+  }
+
+  // Escape to clear measurement
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && measureMode !== 'none') {
+        setMeasurePoints([]);
+        setCursorPos(null);
+        setMeasureFinished(false);
+        setMeasureMode('none');
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [measureMode]);
+
+  function handleClearMeasure() {
+    setMeasurePoints([]);
+    setCursorPos(null);
+    setMeasureFinished(false);
+    setMeasureMode('none');
   }
 
   return (
@@ -289,7 +490,10 @@ export default function DashboardPage() {
           mapStyle="mapbox://styles/mapbox/dark-v11"
           interactiveLayerIds={['gt-pins-circle']}
           onClick={handleMapClick}
-          cursor="pointer"
+          cursor={measureMode !== 'none' && !measureFinished ? 'crosshair' : 'pointer'}
+          onMouseMove={(e) => {
+            if (measureMode !== 'none') setCursorPos([e.lngLat.lng, e.lngLat.lat]);
+          }}
           onMoveEnd={(e) => {
             const b = e.target.getBounds();
             if (b) setMapBounds({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
@@ -299,7 +503,7 @@ export default function DashboardPage() {
           <NavigationControl position="top-right" />
 
           {/* ArcGIS spatial layers as raster tiles */}
-          {spatialLayers.filter((l) => l.visible).map((layer) => (
+          {spatialLayers.filter((l) => l.visible && l.tileUrl).map((layer) => (
             <Source
               key={layer.id}
               id={`arcgis-${layer.id}`}
@@ -315,6 +519,72 @@ export default function DashboardPage() {
               />
             </Source>
           ))}
+
+          {/* Walk route polylines */}
+          {walkRoutes.features.length > 0 && (
+            <Source id="gt-walks" type="geojson" data={walkRoutes}>
+              <Layer
+                id="gt-walks-line"
+                type="line"
+                paint={{
+                  'line-color': colours.sageBright,
+                  'line-width': 3,
+                  'line-dasharray': [2, 1.5],
+                  'line-opacity': 0.8,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Railway lines layer */}
+          {isRailwayLayerActive && railwayGeoJson.features.length > 0 && (
+            <Source id="gt-railway" type="geojson" data={railwayGeoJson}>
+              <Layer
+                id="gt-railway-line"
+                type="line"
+                beforeId={isStationsLayerActive ? 'gt-stations-dot' : undefined}
+                paint={{
+                  'line-color': '#D4653B',
+                  'line-width': 1.5,
+                  'line-opacity': spatialLayers.find((l) => l.id === 'railway')?.opacity ?? 0.7,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Train stations layer */}
+          {isStationsLayerActive && stationsGeoJson.features.length > 0 && (
+            <Source id="gt-stations" type="geojson" data={stationsGeoJson}>
+              <Layer
+                id="gt-stations-dot"
+                type="circle"
+                paint={{
+                  'circle-radius': 5,
+                  'circle-color': '#D4653B',
+                  'circle-stroke-width': 1.5,
+                  'circle-stroke-color': 'rgba(250,248,245,0.8)',
+                }}
+              />
+              <Layer
+                id="gt-stations-label"
+                type="symbol"
+                layout={{
+                  'text-field': ['get', 'name'],
+                  'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+                  'text-size': 10,
+                  'text-offset': [0, 1.3],
+                  'text-anchor': 'top',
+                  'text-max-width': 10,
+                  'text-allow-overlap': false,
+                }}
+                paint={{
+                  'text-color': '#FFFFFF',
+                  'text-halo-color': 'rgba(0,0,0,0.7)',
+                  'text-halo-width': 1,
+                }}
+              />
+            </Source>
+          )}
 
           {/* DA points layer */}
           {isDaLayerActive && (
@@ -361,6 +631,53 @@ export default function DashboardPage() {
             </Source>
           )}
 
+          {/* Measure drawing layers */}
+          {measureGeoJson.features.length > 0 && (
+            <Source id="gt-measure" type="geojson" data={measureGeoJson}>
+              {measureMode === 'polygon' && (
+                <Layer
+                  id="gt-measure-fill"
+                  type="fill"
+                  paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.12 }}
+                />
+              )}
+              <Layer
+                id="gt-measure-line"
+                type="line"
+                paint={{ 'line-color': '#1D4ED8', 'line-width': 2.5, 'line-opacity': 0.9 }}
+              />
+            </Source>
+          )}
+          {measurePointsGeoJson.features.length > 0 && (
+            <Source id="gt-measure-pts" type="geojson" data={measurePointsGeoJson}>
+              <Layer
+                id="gt-measure-dots"
+                type="circle"
+                paint={{ 'circle-radius': 5, 'circle-color': '#60A5FA', 'circle-stroke-width': 2, 'circle-stroke-color': '#1D4ED8' }}
+              />
+            </Source>
+          )}
+          {measureLabelsGeoJson.features.length > 0 && (
+            <Source id="gt-measure-labels" type="geojson" data={measureLabelsGeoJson}>
+              <Layer
+                id="gt-measure-label-text"
+                type="symbol"
+                layout={{
+                  'text-field': ['get', 'label'],
+                  'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+                  'text-size': ['case', ['get', 'isArea'], 13, 11],
+                  'text-allow-overlap': true,
+                  'text-ignore-placement': true,
+                }}
+                paint={{
+                  'text-color': '#FFFFFF',
+                  'text-halo-color': 'rgba(0,0,0,0.8)',
+                  'text-halo-width': 1.5,
+                }}
+              />
+            </Source>
+          )}
+
           <Source id="gt-pins" type="geojson" data={pinsGeoJson}>
             <Layer {...circleLayer} />
             <Layer {...labelLayer} />
@@ -381,6 +698,15 @@ export default function DashboardPage() {
           daActive={isDaLayerActive}
           daZoomedIn={isDaZoomedIn}
           daCount={daPoints.length}
+        />
+
+        {/* Measure tools */}
+        <MeasureTools
+          mode={measureMode}
+          onModeChange={(m) => { setMeasureMode(m); setMeasurePoints([]); setCursorPos(null); setMeasureFinished(false); }}
+          distance={measureDistance}
+          area={measureArea}
+          onClear={handleClearMeasure}
         />
 
         {/* 3D buildings toggle — below nav controls */}

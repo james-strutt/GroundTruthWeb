@@ -96,6 +96,23 @@ export const DEFAULT_LAYERS: SpatialLayer[] = [
     visible: false,
     opacity: 0.5,
   },
+  // Transport
+  {
+    id: "train-stations",
+    label: "Train Stations",
+    group: "Transport",
+    tileUrl: "",
+    visible: false,
+    opacity: 0.9,
+  },
+  {
+    id: "railway",
+    label: "Train Lines",
+    group: "Transport",
+    tileUrl: "",
+    visible: false,
+    opacity: 0.7,
+  },
   // Boundaries
   {
     id: "cadastre",

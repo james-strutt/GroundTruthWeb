@@ -14,6 +14,7 @@ import type {
   ActivityItem,
   FeatureType,
   GroupedProperty,
+  WalkRoute,
 } from '../types/common';
 
 /* ---------- Snaps ---------- */
@@ -104,6 +105,57 @@ export async function getWalk(id: string): Promise<WalkSession | null> {
   if (!supabase) return null;
   const { data } = await supabase.from('walk_sessions').select('*').eq('id', id).single();
   return data ? mapWalk(data) : null;
+}
+
+/* ---------- Deletes ---------- */
+
+/** Delete a snap record */
+export async function deleteSnap(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('snaps').delete().eq('id', id);
+  return !error;
+}
+
+/** Delete an inspection record */
+export async function deleteInspection(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('inspections').delete().eq('id', id);
+  return !error;
+}
+
+/** Delete an appraisal record */
+export async function deleteAppraisal(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('appraisals').delete().eq('id', id);
+  return !error;
+}
+
+/** Delete a watched property record */
+export async function deleteWatched(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('watched_properties').delete().eq('id', id);
+  return !error;
+}
+
+/** Delete a walk session record */
+export async function deleteWalk(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('walk_sessions').delete().eq('id', id);
+  return !error;
+}
+
+/** Remove a specific photo from an inspection's photos array */
+export async function deleteInspectionPhoto(
+  inspectionId: string,
+  photoIndex: number,
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data: row } = await supabase.from('inspections').select('photos').eq('id', inspectionId).single();
+  if (!row) return false;
+  const photos = (row.photos ?? []) as unknown[];
+  photos.splice(photoIndex, 1);
+  const { error } = await supabase.from('inspections').update({ photos, photo_count: photos.length }).eq('id', inspectionId);
+  return !error;
 }
 
 /* ---------- Updates (inline editing) ---------- */
@@ -226,6 +278,25 @@ export async function getPropertyRecords(normalisedAddress: string): Promise<{
 }
 
 /* ---------- Dashboard aggregates ---------- */
+
+export async function getWalkRoutes(): Promise<WalkRoute[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('walk_sessions')
+    .select('id, title, route')
+    .order('started_at', { ascending: false })
+    .limit(50);
+  return (data ?? [])
+    .filter((r) => {
+      const route = r['route'] as [number, number][] | null;
+      return route && route.length > 1;
+    })
+    .map((r) => ({
+      id: r['id'] as string,
+      title: (r['title'] as string) ?? '',
+      route: r['route'] as [number, number][],
+    }));
+}
 
 export async function getAllPins(): Promise<MapPin[]> {
   if (!supabase) return [];

@@ -76,7 +76,7 @@
 }
 
 .eyeOn {
-  color: #C2410C;
+  color: #D4653B;
 }
 
 .eyeOff {
@@ -104,7 +104,7 @@
 .slider {
   width: 48px;
   height: 3px;
-  accent-color: #C2410C;
+  accent-color: #D4653B;
   cursor: pointer;
   flex-shrink: 0;
 }

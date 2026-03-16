@@ -1,7 +1,15 @@
 .page { max-width: 1100px; }
 .loading { color: var(--text-muted); font-family: var(--font-body); }
-.backButton { display: flex; align-items: center; gap: 0.4rem; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 0.875rem; cursor: pointer; padding: 0; margin-bottom: 1.25rem; }
+.topBar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.backButton { display: flex; align-items: center; gap: 0.4rem; background: none; border: none; color: var(--text-muted); font-family: var(--font-body); font-size: 0.875rem; cursor: pointer; padding: 0; }
 .backButton:hover { color: var(--text-primary); }
+.deleteButton { display: flex; align-items: center; gap: 0.3rem; background: none; border: 1px solid rgba(239,68,68,0.3); color: #EF4444; font-family: var(--font-body); font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 5px; cursor: pointer; transition: background 0.15s; }
+.deleteButton:hover { background: rgba(239,68,68,0.1); }
+.reanalyseBtn { display: flex; align-items: center; gap: 0.4rem; background: rgba(194,65,12,0.1); border: 1px solid rgba(194,65,12,0.3); color: #D4653B; font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; padding: 0.5rem 0.85rem; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+.reanalyseBtn:hover { background: rgba(194,65,12,0.18); }
+.reanalyseBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinning { animation: spin 1s linear infinite; }
 .heroSection { display: flex; gap: 1.25rem; margin-bottom: 1.5rem; }
 .photoContainer { width: 200px; height: 150px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
 .photo { width: 100%; height: 100%; object-fit: cover; }

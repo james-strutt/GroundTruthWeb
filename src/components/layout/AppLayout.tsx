@@ -4,7 +4,8 @@
  */
 
 import { type ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { AddressSearch } from './AddressSearch';
 import {
   LayoutDashboard,
   Building,
@@ -37,6 +38,11 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  function handleAddressSelect(address: string) {
+    navigate(`/app/properties/${encodeURIComponent(address.toLowerCase().trim())}`);
+  }
 
   return (
     <div className={styles.shell}>
@@ -44,6 +50,8 @@ export function AppLayout() {
         <div className={styles.brand}>
           <span className={styles.brandText}>GroundTruth</span>
         </div>
+
+        <AddressSearch onSelect={handleAddressSelect} />
 
         <div className={styles.navItems}>
           {NAV_ITEMS.map((item) => (

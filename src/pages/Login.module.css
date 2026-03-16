@@ -60,7 +60,7 @@
 }
 
 .input:focus {
-  border-color: #C2410C;
+  border-color: #D4653B;
 }
 
 .error {
@@ -73,7 +73,7 @@
 .submitButton {
   width: 100%;
   padding: 0.75rem;
-  background: #C2410C;
+  background: #D4653B;
   color: #FAF8F5;
   border: none;
   border-radius: 8px;
@@ -139,7 +139,7 @@
 .toggleButton {
   background: none;
   border: none;
-  color: #C2410C;
+  color: #D4653B;
   font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 600;
