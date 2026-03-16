@@ -84,7 +84,7 @@
   background: var(--sage-bright);
   border: 2px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 6px rgba(101,163,13,0.4);
+  box-shadow: 0 1px 6px rgba(139,144,128,0.4);
   position: relative;
   z-index: 3;
 }
@@ -98,7 +98,7 @@
   height: 12px;
   margin: -6px 0 0 -6px;
   border-radius: 50%;
-  background: rgba(101,163,13,0.3);
+  background: rgba(139,144,128,0.3);
   z-index: 1;
 }
 
@@ -164,7 +164,7 @@
 .scoreTick:nth-child(4) .scoreTickFill { animation-delay: 0.95s; }
 
 .scoreTickValue {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 8px;
   font-weight: 600;
   color: var(--stone-700);

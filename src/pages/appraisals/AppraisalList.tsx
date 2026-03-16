@@ -4,6 +4,7 @@ import { listAppraisals } from '../../services/api';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { FeatureCard } from '../../components/shared/FeatureCard';
 import { GroupedFeatureList } from '../../components/shared/GroupedFeatureList';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { Appraisal } from '../../types/common';
 
 function formatCompact(n: number): string {
@@ -24,7 +25,7 @@ export default function AppraisalListPage() {
     <div>
       <PageHeader icon={<BarChart3 size={22} />} title="Appraisals" count={items.length} />
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>Loading...</p>
+        <LoadingSpinner message="Loading appraisals..." />
       ) : (
         <GroupedFeatureList
           records={items}

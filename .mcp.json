@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mapbox-mcp": {
+      "command": "cmd",
+      "args": ["/c", "npx", "mcp-remote", "https://mcp.mapbox.com/mcp"]
+    }
+  }
+}

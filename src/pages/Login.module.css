@@ -60,11 +60,11 @@
 }
 
 .input:focus {
-  border-color: #D4653B;
+  border-color: var(--terracotta);
 }
 
 .error {
-  color: #EF4444;
+  color: #9E7E78;
   font-family: var(--font-body);
   font-size: 0.8125rem;
   margin: 0;
@@ -73,8 +73,8 @@
 .submitButton {
   width: 100%;
   padding: 0.75rem;
-  background: #D4653B;
-  color: #FAF8F5;
+  background: var(--terracotta);
+  color: var(--cream);
   border: none;
   border-radius: 8px;
   font-family: var(--font-body);
@@ -85,7 +85,7 @@
 }
 
 .submitButton:hover {
-  background: #9A3412;
+  background: var(--terracotta-dark);
 }
 
 .submitButton:disabled {
@@ -139,7 +139,7 @@
 .toggleButton {
   background: none;
   border: none;
-  color: #D4653B;
+  color: var(--terracotta);
   font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 600;

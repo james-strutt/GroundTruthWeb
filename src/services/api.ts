@@ -15,6 +15,11 @@ import type {
   FeatureType,
   GroupedProperty,
   WalkRoute,
+  Directory,
+  DirectorySummary,
+  Property,
+  PropertySummary,
+  PropertyStatus,
 } from '../types/common';
 
 /* ---------- Snaps ---------- */
@@ -107,6 +112,167 @@ export async function getWalk(id: string): Promise<WalkSession | null> {
   return data ? mapWalk(data) : null;
 }
 
+/* ---------- Directories ---------- */
+
+export async function listDirectories(): Promise<DirectorySummary[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('directory_summary')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return (data ?? []).map(mapDirectorySummary);
+}
+
+export async function getDirectory(id: string): Promise<Directory | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.from('directories').select('*').eq('id', id).single();
+  return data ? mapDirectory(data) : null;
+}
+
+export async function createDirectory(
+  fields: { name: string; description?: string; colour?: string; icon?: string },
+): Promise<Directory | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('directories')
+    .insert({
+      name: fields.name,
+      description: fields.description ?? null,
+      colour: fields.colour ?? null,
+      icon: fields.icon ?? null,
+    })
+    .select()
+    .single();
+  return data ? mapDirectory(data) : null;
+}
+
+export async function updateDirectory(
+  id: string,
+  updates: Partial<{ name: string; description: string; colour: string; icon: string; isArchived: boolean }>,
+): Promise<boolean> {
+  if (!supabase) return false;
+  const payload: Record<string, unknown> = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.colour !== undefined) payload.colour = updates.colour;
+  if (updates.icon !== undefined) payload.icon = updates.icon;
+  if (updates.isArchived !== undefined) payload.is_archived = updates.isArchived;
+  const { error } = await supabase.from('directories').update(payload).eq('id', id);
+  return !error;
+}
+
+export async function deleteDirectory(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('directories').delete().eq('id', id);
+  return !error;
+}
+
+/* ---------- Properties (new relational) ---------- */
+
+export async function listPropertiesByDirectory(directoryId: string): Promise<PropertySummary[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('properties_summary')
+    .select('*')
+    .eq('directory_id', directoryId)
+    .order('last_activity_at', { ascending: false });
+  return (data ?? []).map(mapPropertySummary);
+}
+
+export async function listAllProperties(): Promise<PropertySummary[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('properties_summary')
+    .select('*')
+    .order('last_activity_at', { ascending: false })
+    .limit(200);
+  return (data ?? []).map(mapPropertySummary);
+}
+
+export async function getProperty(id: string): Promise<Property | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.from('properties').select('*').eq('id', id).single();
+  return data ? mapProperty(data) : null;
+}
+
+export async function createProperty(
+  fields: {
+    directoryId: string;
+    address: string;
+    suburb?: string;
+    latitude?: number;
+    longitude?: number;
+    propid?: number;
+    status?: PropertyStatus;
+    notes?: string;
+  },
+): Promise<Property | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('properties')
+    .insert({
+      directory_id: fields.directoryId,
+      address: fields.address,
+      normalised_address: fields.address.trim().toLowerCase(),
+      suburb: fields.suburb ?? null,
+      latitude: fields.latitude ?? null,
+      longitude: fields.longitude ?? null,
+      propid: fields.propid ?? null,
+      status: fields.status ?? 'active',
+      notes: fields.notes ?? null,
+    })
+    .select()
+    .single();
+  return data ? mapProperty(data) : null;
+}
+
+export async function updateProperty(
+  id: string,
+  updates: Partial<{ directoryId: string; address: string; suburb: string; status: PropertyStatus; notes: string }>,
+): Promise<boolean> {
+  if (!supabase) return false;
+  const payload: Record<string, unknown> = {};
+  if (updates.directoryId !== undefined) payload.directory_id = updates.directoryId;
+  if (updates.address !== undefined) {
+    payload.address = updates.address;
+    payload.normalised_address = updates.address.trim().toLowerCase();
+  }
+  if (updates.suburb !== undefined) payload.suburb = updates.suburb;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.notes !== undefined) payload.notes = updates.notes;
+  const { error } = await supabase.from('properties').update(payload).eq('id', id);
+  return !error;
+}
+
+export async function deleteProperty(id: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('properties').delete().eq('id', id);
+  return !error;
+}
+
+export async function getPropertyActivities(propertyId: string): Promise<{
+  snaps: Snap[];
+  inspections: Inspection[];
+  appraisals: Appraisal[];
+  watched: WatchedProperty[];
+}> {
+  if (!supabase) return { snaps: [], inspections: [], appraisals: [], watched: [] };
+
+  const [s, i, a, w] = await Promise.all([
+    supabase.from('snaps').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+    supabase.from('inspections').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+    supabase.from('appraisals').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+    supabase.from('watched_properties').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+  ]);
+
+  return {
+    snaps: (s.data ?? []).map(mapSnap),
+    inspections: (i.data ?? []).map(mapInspection),
+    appraisals: (a.data ?? []).map(mapAppraisal),
+    watched: (w.data ?? []).map(mapWatched),
+  };
+}
+
 /* ---------- Deletes ---------- */
 
 /** Delete a snap record */
@@ -183,6 +349,26 @@ export async function updateSnapField(
 ): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.from('snaps').update(updates).eq('id', id);
+  return !error;
+}
+
+/** Update a specific field within a photo's analysis in an inspection */
+export async function updateInspectionPhotoAnalysis(
+  inspectionId: string,
+  photoIndex: number,
+  field: string,
+  value: unknown,
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data: row } = await supabase.from('inspections').select('photos').eq('id', inspectionId).single();
+  if (!row) return false;
+  const photos = (row.photos ?? []) as Record<string, unknown>[];
+  const photo = photos[photoIndex];
+  if (!photo) return false;
+  const analysis = ((photo['analysis'] ?? {}) as Record<string, unknown>);
+  analysis[field] = value;
+  photo['analysis'] = analysis;
+  const { error } = await supabase.from('inspections').update({ photos }).eq('id', inspectionId);
   return !error;
 }
 
@@ -412,6 +598,7 @@ function mapSnap(row: any): Snap {
   return {
     id: row.id,
     userId: row.user_id,
+    propertyId: row.property_id ?? null,
     address: row.address ?? '',
     suburb: row.suburb ?? '',
     latitude: row.latitude,
@@ -431,6 +618,7 @@ function mapInspection(row: any): Inspection {
   return {
     id: row.id,
     userId: row.user_id,
+    propertyId: row.property_id ?? null,
     address: row.address ?? '',
     suburb: row.suburb ?? '',
     latitude: row.latitude,
@@ -449,6 +637,7 @@ function mapAppraisal(row: any): Appraisal {
   return {
     id: row.id,
     userId: row.user_id,
+    propertyId: row.property_id ?? null,
     address: row.address ?? '',
     suburb: row.suburb ?? '',
     latitude: row.latitude,
@@ -466,6 +655,7 @@ function mapWatched(row: any): WatchedProperty {
   return {
     id: row.id,
     userId: row.user_id,
+    propertyId: row.property_id ?? null,
     address: row.address ?? '',
     suburb: row.suburb ?? '',
     latitude: row.latitude,
@@ -486,6 +676,8 @@ function mapWalk(row: any): WalkSession {
   return {
     id: row.id,
     userId: row.user_id,
+    directoryId: row.directory_id ?? null,
+    propertyId: row.property_id ?? null,
     title: row.title ?? '',
     suburb: row.suburb ?? '',
     route: row.route ?? [],
@@ -498,5 +690,89 @@ function mapWalk(row: any): WalkSession {
     startedAt: row.started_at,
     endedAt: row.ended_at,
     isFavourite: row.is_favourite ?? false,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDirectory(row: any): Directory {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name ?? '',
+    description: row.description ?? null,
+    colour: row.colour ?? null,
+    icon: row.icon ?? null,
+    isArchived: row.is_archived ?? false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDirectorySummary(row: any): DirectorySummary {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name ?? '',
+    description: row.description ?? null,
+    colour: row.colour ?? null,
+    icon: row.icon ?? null,
+    isArchived: row.is_archived ?? false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    propertyCount: row.property_count ?? 0,
+    totalSnapCount: row.total_snap_count ?? 0,
+    totalInspectionCount: row.total_inspection_count ?? 0,
+    totalAppraisalCount: row.total_appraisal_count ?? 0,
+    totalMonitorCount: row.total_monitor_count ?? 0,
+    totalActivityCount: row.total_activity_count ?? 0,
+    lastActivityAt: row.last_activity_at ?? null,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProperty(row: any): Property {
+  return {
+    id: row.id,
+    directoryId: row.directory_id,
+    userId: row.user_id,
+    address: row.address ?? '',
+    normalisedAddress: row.normalised_address ?? '',
+    suburb: row.suburb ?? null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    propid: row.propid ?? null,
+    status: row.status ?? 'active',
+    notes: row.notes ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPropertySummary(row: any): PropertySummary {
+  return {
+    id: row.id,
+    directoryId: row.directory_id,
+    userId: row.user_id,
+    address: row.address ?? '',
+    normalisedAddress: row.normalised_address ?? '',
+    suburb: row.suburb ?? null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    propid: row.propid ?? null,
+    status: row.status ?? 'active',
+    notes: row.notes ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    directoryName: row.directory_name ?? '',
+    directoryColour: row.directory_colour ?? null,
+    snapCount: row.snap_count ?? 0,
+    inspectionCount: row.inspection_count ?? 0,
+    appraisalCount: row.appraisal_count ?? 0,
+    monitorCount: row.monitor_count ?? 0,
+    totalRecords: row.total_records ?? 0,
+    lastActivityAt: row.last_activity_at ?? null,
+    thumbnailUrl: row.thumbnail_url ?? null,
   };
 }

@@ -8,6 +8,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AddressSearch } from './AddressSearch';
 import {
   LayoutDashboard,
+  FolderOpen,
   Building,
   Camera,
   ClipboardCheck,
@@ -15,6 +16,7 @@ import {
   Eye,
   Footprints,
   LogOut,
+  User,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './AppLayout.module.css';
@@ -24,16 +26,25 @@ interface NavItem {
   icon: ReactNode;
   label: string;
   end?: boolean;
+  secondary?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/app', icon: <LayoutDashboard size={18} />, label: 'Dashboard', end: true },
-  { to: '/app/properties', icon: <Building size={18} />, label: 'Properties' },
-  { to: '/app/snaps', icon: <Camera size={18} />, label: 'Snaps' },
-  { to: '/app/inspections', icon: <ClipboardCheck size={18} />, label: 'Inspections' },
-  { to: '/app/appraisals', icon: <BarChart3 size={18} />, label: 'Appraisals' },
-  { to: '/app/monitor', icon: <Eye size={18} />, label: 'Monitor' },
+  { to: '/app/directories', icon: <FolderOpen size={18} />, label: 'Directories' },
   { to: '/app/walks', icon: <Footprints size={18} />, label: 'Walks' },
+  { to: '/app/properties', icon: <Building size={18} />, label: 'Properties', secondary: true },
+  { to: '/app/snaps', icon: <Camera size={18} />, label: 'Snaps', secondary: true },
+  { to: '/app/inspections', icon: <ClipboardCheck size={18} />, label: 'Inspections', secondary: true },
+  { to: '/app/appraisals', icon: <BarChart3 size={18} />, label: 'Appraisals', secondary: true },
+  { to: '/app/monitor', icon: <Eye size={18} />, label: 'Monitor', secondary: true },
+];
+
+const MOBILE_NAV_ITEMS: NavItem[] = [
+  { to: '/app', icon: <LayoutDashboard size={20} />, label: 'Dashboard', end: true },
+  { to: '/app/directories', icon: <FolderOpen size={20} />, label: 'Directories' },
+  { to: '/app/walks', icon: <Footprints size={20} />, label: 'Walks' },
+  { to: '/app', icon: <User size={20} />, label: 'Profile' },
 ];
 
 export function AppLayout() {
@@ -46,7 +57,8 @@ export function AppLayout() {
 
   return (
     <div className={styles.shell}>
-      <nav className={styles.sidebar}>
+      <a href="#main-content" className={styles.skipLink}>Skip to content</a>
+      <nav className={styles.sidebar} aria-label="Main navigation">
         <div className={styles.brand}>
           <span className={styles.brandText}>GroundTruth</span>
         </div>
@@ -54,13 +66,29 @@ export function AppLayout() {
         <AddressSearch onSelect={handleAddressSelect} />
 
         <div className={styles.navItems}>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !item.secondary).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+              }
+            >
+              <span className={styles.navIcon}>{item.icon}</span>
+              <span className={styles.navLabel}>{item.label}</span>
+            </NavLink>
+          ))}
+
+          <div className={styles.navDivider} />
+
+          {NAV_ITEMS.filter((item) => item.secondary).map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `${styles.navItem} ${styles.navItemSecondary} ${isActive ? styles.navItemActive : ''}`
               }
             >
               <span className={styles.navIcon}>{item.icon}</span>
@@ -80,14 +108,14 @@ export function AppLayout() {
         </div>
       </nav>
 
-      <main className={styles.content}>
+      <main id="main-content" className={styles.content}>
         <Outlet />
       </main>
 
-      <nav className={styles.bottomNav}>
-        {NAV_ITEMS.map((item) => (
+      <nav className={styles.bottomNav} aria-label="Mobile navigation">
+        {MOBILE_NAV_ITEMS.map((item) => (
           <NavLink
-            key={item.to}
+            key={`mobile-${item.label}`}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>

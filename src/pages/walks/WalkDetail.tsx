@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Ruler, Trash2, RefreshCw } from 'lucide-react';
 import Map, { Source, Layer } from 'react-map-gl/mapbox';
@@ -7,6 +7,10 @@ import { getWalk, updateWalkField, deleteWalk } from '../../services/api';
 import { reanalyseWalkPhoto } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
 import { InlineDiff } from '../../components/shared/InlineDiff';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
+import { ConfirmModal } from '../../components/shared/ConfirmModal';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { colours } from '../../theme';
 import type { WalkSession } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
@@ -36,26 +40,77 @@ export default function WalkDetailPage() {
   const navigate = useNavigate();
   const [record, setRecord] = useState<WalkSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isReanalysing, setIsReanalysing] = useState(false);
   const [pendingNarrative, setPendingNarrative] = useState<string | null>(null);
+  const [pendingStreetScore, setPendingStreetScore] = useState<Record<string, unknown> | null>(null);
 
-  useEffect(() => {
+  const fetchWalk = useCallback(async () => {
     if (!id) return;
-    void getWalk(id).then((d) => { setRecord(d); setLoading(false); });
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await getWalk(id);
+      setRecord(d);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load walk');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  async function handleReanalyse() {
+  useEffect(() => {
+    void fetchWalk();
+  }, [fetchWalk]);
+
+  async function handleReanalyse(): Promise<void> {
     if (!record || record.photos.length === 0 || isReanalysing) return;
-    const photoUrl = record.photos[0]?.uri;
-    if (!photoUrl || !photoUrl.startsWith('http')) {
+
+    const cloudPhotos = record.photos.filter((p) => p.uri.startsWith('http'));
+    if (cloudPhotos.length === 0) {
       alert('Photos not synced to cloud. Re-sync from the iOS app first.');
       return;
     }
+
     setIsReanalysing(true);
     try {
-      const result = await reanalyseWalkPhoto(photoUrl, record.title || record.suburb);
-      const narrative = (result['notableFeatures'] as string[] ?? []).join('. ') +
-        '. ' + (result['concerns'] as string[] ?? []).join('. ');
+      const scores = { walkability: [] as number[], streetscape: [] as number[], amenity: [] as number[], safety: [] as number[] };
+      const notes = { walkability: [] as string[], streetscape: [] as string[], amenity: [] as string[], safety: [] as string[] };
+      const allFeatures: string[] = [];
+      const allConcerns: string[] = [];
+
+      for (const photo of cloudPhotos) {
+        try {
+          const result = await reanalyseWalkPhoto(photo.uri, record.title || record.suburb);
+          for (const dim of ['walkability', 'streetscape', 'amenity', 'safety'] as const) {
+            const d = result[dim] as { score?: number; notes?: string } | undefined;
+            if (d?.score) scores[dim].push(d.score);
+            if (d?.notes) notes[dim].push(d.notes);
+          }
+          const features = result['notableFeatures'] as string[] ?? [];
+          const concerns = result['concerns'] as string[] ?? [];
+          allFeatures.push(...features);
+          allConcerns.push(...concerns);
+        } catch {
+          // Skip failed photos
+        }
+      }
+
+      const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 50;
+      const dedupe = (arr: string[]) => [...new Set(arr)].join('. ');
+
+      const newScore = {
+        walkability: { score: avg(scores.walkability), notes: dedupe(notes.walkability) },
+        streetscape: { score: avg(scores.streetscape), notes: dedupe(notes.streetscape) },
+        amenity: { score: avg(scores.amenity), notes: dedupe(notes.amenity) },
+        safety: { score: avg(scores.safety), notes: dedupe(notes.safety) },
+        overall: avg([avg(scores.walkability), avg(scores.streetscape), avg(scores.amenity), avg(scores.safety)]),
+      };
+
+      setPendingStreetScore(newScore);
+
+      const narrative = dedupe(allFeatures) + '. ' + dedupe(allConcerns);
       if (narrative.trim().length > 2) setPendingNarrative(narrative);
     } catch (err: unknown) {
       alert(`Re-analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -64,8 +119,9 @@ export default function WalkDetailPage() {
     }
   }
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
-  if (!record) return <p className={styles.loading}>Walk session not found.</p>;
+  if (loading) return <LoadingSpinner message="Loading walk..." />;
+  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchWalk(); }} />;
+  if (!record) return <ErrorMessage type="notFound" message="Walk session not found" />;
 
   const routeGeoJson: GeoJSON.Feature = {
     type: 'Feature',
@@ -82,14 +138,29 @@ export default function WalkDetailPage() {
 
   return (
     <div className={styles.page}>
+      <Breadcrumb segments={[{ label: 'Dashboard', path: '/app' }, { label: 'Walks', path: '/app/walks' }, { label: record.title || record.suburb }]} />
       <div className={styles.topBar}>
         <button className={styles.backButton} onClick={() => navigate('/app/walks')}>
           <ArrowLeft size={18} /> Back to Walks
         </button>
-        <button className={styles.deleteButton} onClick={async () => { if (window.confirm('Delete this walk session?')) { await deleteWalk(record.id); navigate('/app/walks'); } }}>
+        <button className={styles.deleteButton} onClick={() => setShowDeleteConfirm(true)}>
           <Trash2 size={14} /> Delete
         </button>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Walk"
+          message="Delete this walk session? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            await deleteWalk(record.id);
+            navigate('/app/walks');
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       <div className={styles.heroInfo}>
         <h1 className={styles.address}>{record.title || record.suburb}</h1>
@@ -105,7 +176,7 @@ export default function WalkDetailPage() {
         <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
           <button className={styles.reanalyseBtn} onClick={() => void handleReanalyse()} disabled={isReanalysing}>
             <RefreshCw size={14} className={isReanalysing ? styles.spinning : ''} />
-            {isReanalysing ? 'Analysing...' : 'Re-analyse with AI'}
+            {isReanalysing ? `Analysing ${record.photos.filter((p) => p.uri.startsWith('http')).length} photos...` : 'Re-analyse'}
           </button>
         </div>
       )}
@@ -168,13 +239,55 @@ export default function WalkDetailPage() {
                 id="walk-route-line"
                 type="line"
                 paint={{
-                  'line-color': colours.sageBright,
-                  'line-width': 4,
-                  'line-dasharray': [2, 1.5],
+                  'line-color': '#66ff66',
+                  'line-width': 5,
+                  'line-opacity': 0.9,
+                  'line-dasharray': [2, 1],
                 }}
               />
             </Source>
           </Map>
+        </div>
+      )}
+
+      {/* Street score diff from re-analysis */}
+      {pendingStreetScore && record.streetScore && (
+        <div style={{ marginTop: '1rem' }}>
+          <InlineDiff
+            title="AI Street Score Update"
+            fields={(['walkability', 'streetscape', 'amenity', 'safety'] as const).map((dim) => ({
+              key: `${dim}_notes`,
+              label: `${dim.charAt(0).toUpperCase()}${dim.slice(1)} (${(pendingStreetScore[dim] as { score: number })?.score ?? '?'}/100)`,
+              oldValue: record.streetScore![dim].notes,
+              newValue: (pendingStreetScore[dim] as { notes: string })?.notes ?? '',
+            }))}
+            onAccept={async (key, value) => {
+              const dim = key.replace('_notes', '') as 'walkability' | 'streetscape' | 'amenity' | 'safety';
+              const newScoreObj = pendingStreetScore[dim] as { score: number; notes: string };
+              const updated = {
+                ...record.streetScore!,
+                [dim]: { score: newScoreObj.score, notes: value },
+                overall: pendingStreetScore['overall'] as number,
+              };
+              await updateWalkField(record.id, { street_score: updated });
+              setRecord((prev) => prev ? { ...prev, streetScore: updated } : prev);
+              const remaining = (['walkability', 'streetscape', 'amenity', 'safety'] as const)
+                .filter((d) => d !== dim && (pendingStreetScore[d] as { notes: string })?.notes !== record.streetScore![d].notes);
+              if (remaining.length === 0) setPendingStreetScore(null);
+            }}
+            onReject={(key) => {
+              const dim = key.replace('_notes', '') as 'walkability' | 'streetscape' | 'amenity' | 'safety';
+              const remaining = (['walkability', 'streetscape', 'amenity', 'safety'] as const)
+                .filter((d) => d !== dim && (pendingStreetScore[d] as { notes: string })?.notes !== record.streetScore![d].notes);
+              if (remaining.length === 0) setPendingStreetScore(null);
+            }}
+            onAcceptAll={async () => {
+              await updateWalkField(record.id, { street_score: pendingStreetScore });
+              setRecord((prev) => prev ? { ...prev, streetScore: pendingStreetScore as WalkSession['streetScore'] } : prev);
+              setPendingStreetScore(null);
+            }}
+            onRejectAll={() => setPendingStreetScore(null)}
+          />
         </div>
       )}
 
@@ -195,7 +308,16 @@ export default function WalkDetailPage() {
                 <div key={dim} className={styles.detailItem}>
                   <span className={styles.detailLabel} style={{ textTransform: 'capitalize' }}>{dim}</span>
                   <span className={styles.detailValue} style={{ color: scoreColour(d.score) }}>{d.score}/100</span>
-                  {d.notes && <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>{d.notes}</span>}
+                  <EditableText
+                    value={d.notes}
+                    multiline
+                    onSave={async (v) => {
+                      const updated = { ...record.streetScore!, [dim]: { ...d, notes: v } };
+                      await updateWalkField(record.id, { street_score: updated });
+                      setRecord((prev) => prev ? { ...prev, streetScore: updated } : prev);
+                    }}
+                    className={styles.summary}
+                  />
                 </div>
               );
             })}

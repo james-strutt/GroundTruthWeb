@@ -1,37 +1,72 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, AlertCircle, Trash2 } from 'lucide-react';
 import { getWatched, deleteWatched } from '../../services/api';
 import { ClickableImage } from '../../components/shared/ClickableImage';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
+import { ConfirmModal } from '../../components/shared/ConfirmModal';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { WatchedProperty } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
 
-const SEVERITY_COLOURS: Record<string, string> = { none: '#57534E', minor: '#D97706', moderate: '#EA580C', major: '#DC2626', demolition: '#991B1B' };
+const SEVERITY_COLOURS: Record<string, string> = { none: '#57534E', minor: '#B0A08A', moderate: '#EA580C', major: '#DC2626', demolition: '#991B1B' };
 
 export default function MonitorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [record, setRecord] = useState<WatchedProperty | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
+  const fetchWatched = useCallback(async () => {
     if (!id) return;
-    void getWatched(id).then((d) => { setRecord(d); setLoading(false); });
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await getWatched(id);
+      setRecord(d);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load property');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
-  if (!record) return <p className={styles.loading}>Property not found.</p>;
+  useEffect(() => {
+    void fetchWatched();
+  }, [fetchWatched]);
+
+  if (loading) return <LoadingSpinner message="Loading property..." />;
+  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchWatched(); }} />;
+  if (!record) return <ErrorMessage type="notFound" message="Property not found" />;
 
   return (
     <div className={styles.page}>
+      <Breadcrumb segments={[{ label: 'Dashboard', path: '/app' }, { label: 'Monitor', path: '/app/monitor' }, { label: record.address }]} />
       <div className={styles.topBar}>
         <button className={styles.backButton} onClick={() => navigate('/app/monitor')}>
           <ArrowLeft size={18} /> Back to Monitor
         </button>
-        <button className={styles.deleteButton} onClick={async () => { if (window.confirm('Delete this monitored property?')) { await deleteWatched(record.id); navigate('/app/monitor'); } }}>
+        <button className={styles.deleteButton} onClick={() => setShowDeleteConfirm(true)}>
           <Trash2 size={14} /> Delete
         </button>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Monitored Property"
+          message="Delete this monitored property? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            await deleteWatched(record.id);
+            navigate('/app/monitor');
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       <div className={styles.heroSection}>
         {record.latestPhotoUrl && (
@@ -56,7 +91,7 @@ export default function MonitorDetailPage() {
             <h2 className={styles.cardTitle}><AlertCircle size={16} /> Active Alerts</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {record.alerts.filter((a) => !a.dismissed).map((a) => (
-                <div key={a.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', borderLeft: `3px solid ${SEVERITY_COLOURS[a.severity] ?? '#57534E'}` }}>
+                <div key={a.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(158,126,120,0.08)', borderRadius: '6px', borderLeft: `3px solid ${SEVERITY_COLOURS[a.severity] ?? '#57534E'}` }}>
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{a.message}</span>
                 </div>
               ))}

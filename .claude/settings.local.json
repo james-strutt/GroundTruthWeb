@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(gh api:*)",
+      "Bash(/tmp/tree.txt:*)",
+      "Read(//tmp/**)",
+      "WebFetch(domain:www.houspect.com.au)",
+      "Bash(tail:*)",
+      "Bash(which supabase:*)",
+      "Bash(cd:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)",
+      "Bash(git show-ref:*)",
+      "WebFetch(domain:ai.google.dev)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "mapbox-mcp"
+  ]
+}

@@ -19,35 +19,35 @@
   right: 0.625rem;
   width: 29px;
   height: 29px;
-  background: #fff;
-  border: none;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(212, 101, 59, 0.4);
   border-radius: 4px;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #333;
+  color: #e8e2d9;
   transition: background 0.15s, color 0.15s;
   z-index: 5;
 }
 
 .buildingsToggle:hover {
-  background: #f0f0f0;
-  color: #000;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
 }
 
 .buildingsToggleActive {
-  background: #D4653B;
-  color: #fff;
+  background: var(--terracotta);
+  color: var(--warm-white);
 }
 
 .legend {
   position: absolute;
   bottom: 3rem;
   left: 1rem;
-  background: rgba(18, 17, 16, 0.85);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
+  border: 1px solid var(--terracotta);
   border-radius: 8px;
   padding: 0.6rem 0.75rem;
   display: flex;
@@ -61,7 +61,7 @@
   gap: 0.5rem;
   font-family: var(--font-body);
   font-size: 0.6875rem;
-  color: var(--text-secondary);
+  color: #e8e2d9;
 }
 
 .legendDot {
@@ -74,17 +74,18 @@
 /* Activity panel */
 .activityPanel {
   width: 480px;
-  background: rgba(255, 255, 255, 0.02);
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  background: #000000;
+  border-left: 2px solid var(--terracotta);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  color: #e8e2d9;
 }
 
 .activityTitle {
   font-family: var(--font-brand);
   font-size: 1.125rem;
-  color: var(--text-primary);
+  color: #ffffff;
   margin: 0;
   padding: 1.25rem 1rem 0.75rem;
 }
@@ -92,14 +93,14 @@
 .activityList {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .activityCard {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   background: none;
   border: none;
   text-align: left;
@@ -110,7 +111,7 @@
 }
 
 .activityCard:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .propertyInfo {
@@ -128,14 +129,14 @@
 }
 
 .propertyIcon {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
 
 .propertySub {
   font-family: var(--font-body);
   font-size: 0.6875rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   padding-left: 1.1rem;
 }
 
@@ -156,24 +157,26 @@
 }
 
 .expandChevron {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
   display: flex;
 }
 
 .propertyGroup {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--terracotta);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .propertyGroupExpanded {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .propertyItems {
-  padding: 0 0.75rem 0.5rem 2rem;
+  padding: 0.25rem 0.75rem 0.65rem 2.75rem;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .propertyItem {
@@ -192,7 +195,7 @@
 }
 
 .propertyItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .propertyItemDot {
@@ -206,7 +209,7 @@
   font-family: var(--font-body);
   font-size: 0.6875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   min-width: 60px;
 }
 
@@ -214,7 +217,7 @@
   flex: 1;
   font-family: var(--font-body);
   font-size: 0.625rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -223,26 +226,26 @@
 .propertyItemDate {
   font-family: var(--font-data);
   font-size: 0.5625rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
 
 .viewAllButton {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 5px;
   padding: 0.3rem 0.5rem;
   font-family: var(--font-body);
   font-size: 0.625rem;
   font-weight: 500;
-  color: #D4653B;
+  color: var(--terracotta);
   cursor: pointer;
   margin-top: 0.25rem;
   transition: background 0.1s;
 }
 
 .viewAllButton:hover {
-  background: rgba(194, 65, 12, 0.08);
+  background: rgba(212, 101, 59, 0.15);
 }
 
 
@@ -250,7 +253,7 @@
   font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,7 +271,7 @@
 .activityDate {
   font-family: var(--font-data);
   font-size: 0.6875rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.4);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -281,7 +284,7 @@
 .emptyText {
   font-family: var(--font-body);
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
   padding: 1rem;
   margin: 0;
 }
@@ -289,9 +292,8 @@
 .emptyHint {
   font-family: var(--font-body);
   font-size: 0.8125rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.35);
   margin: 0;
-  opacity: 0.7;
 }
 
 /* Mobile */
@@ -311,6 +313,19 @@
     width: 100%;
     max-height: 40vh;
     border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 2px solid var(--terracotta);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .legend {
+    bottom: 1rem;
+    left: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.625rem;
+  }
+
+  .buildingsToggle {
+    top: 6.5rem;
   }
 }

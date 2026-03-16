@@ -6,7 +6,7 @@
 }
 
 .icon {
-  color: #D4653B;
+  color: var(--terracotta);
   display: flex;
 }
 

@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Shield, Lightbulb, AlertTriangle, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MapPin, Shield, Lightbulb, AlertTriangle, Trash2, RefreshCw, Sparkles } from 'lucide-react';
 import { getSnap, updateSnapAnalysisField, deleteSnap } from '../../services/api';
 import { reanalyseSnap } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
+import { ImageEditModal } from '../../components/shared/ImageEditModal';
 import { InlineDiff } from '../../components/shared/InlineDiff';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
+import { ConfirmModal } from '../../components/shared/ConfirmModal';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { colours } from '../../theme';
 import type { Snap, SnapAnalysis } from '../../types/common';
 import styles from './SnapDetail.module.css';
@@ -15,13 +20,30 @@ export default function SnapDetailPage() {
   const navigate = useNavigate();
   const [snap, setSnap] = useState<Snap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isReanalysing, setIsReanalysing] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [showAIEdit, setShowAIEdit] = useState(false);
+  const [aiEditedImageUrl, setAiEditedImageUrl] = useState<string | null>(null);
+
+  const fetchSnap = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getSnap(id);
+      setSnap(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load snap');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (!id) return;
-    void getSnap(id).then((data) => { setSnap(data); setLoading(false); });
-  }, [id]);
+    void fetchSnap();
+  }, [fetchSnap]);
 
   async function handleReanalyse() {
     if (!snap?.photoUrl || isReanalysing) return;
@@ -77,34 +99,53 @@ export default function SnapDetailPage() {
     setPendingAnalysis(null);
   }
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
-  if (!snap) return <p className={styles.loading}>Snap not found.</p>;
+  if (loading) return <LoadingSpinner message="Loading snap..." />;
+  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchSnap(); }} />;
+  if (!snap) return <ErrorMessage type="notFound" message="Snap not found" />;
 
   const analysis = snap.aiAnalysis;
 
   return (
     <div className={styles.page}>
+      <Breadcrumb segments={[{ label: 'Dashboard', path: '/app' }, { label: 'Snaps', path: '/app/snaps' }, { label: snap.address }]} />
       <div className={styles.topBar}>
         <button className={styles.backButton} onClick={() => navigate('/app/snaps')}>
           <ArrowLeft size={18} /> Back to Snaps
         </button>
         <button
           className={styles.deleteButton}
-          onClick={async () => {
-            if (window.confirm('Delete this snap? This cannot be undone.')) {
-              await deleteSnap(snap.id);
-              navigate('/app/snaps');
-            }
-          }}
+          onClick={() => setShowDeleteConfirm(true)}
         >
           <Trash2 size={14} /> Delete
         </button>
       </div>
 
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Snap"
+          message="Delete this snap? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            await deleteSnap(snap.id);
+            navigate('/app/snaps');
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
       <div className={styles.heroSection}>
         {snap.photoUrl && (
           <div className={styles.photoContainer}>
             <ClickableImage src={snap.photoUrl} alt={snap.address} className={styles.photo} />
+          </div>
+        )}
+        {aiEditedImageUrl && (
+          <div className={styles.photoContainer} style={{ position: 'relative' }}>
+            <ClickableImage src={aiEditedImageUrl} alt={`${snap.address} (AI edited)`} className={styles.photo} />
+            <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', background: 'rgba(212,101,59,0.9)', color: '#fff', fontFamily: 'var(--font-data)', fontSize: '0.625rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              AI Generated
+            </span>
           </div>
         )}
         <div className={styles.heroInfo}>
@@ -120,14 +161,21 @@ export default function SnapDetailPage() {
       {analysis && (
         <>
         {snap.photoUrl && (
-          <div style={{ marginBottom: '0.75rem' }}>
+          <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem' }}>
             <button
               className={styles.reanalyseBtn}
               onClick={() => void handleReanalyse()}
               disabled={isReanalysing}
             >
               <RefreshCw size={14} className={isReanalysing ? styles.spinning : ''} />
-              {isReanalysing ? 'Analysing...' : 'Re-analyse with AI'}
+              {isReanalysing ? 'Analysing...' : 'Re-analyse'}
+            </button>
+            <button
+              className={styles.reanalyseBtn}
+              onClick={() => setShowAIEdit(true)}
+            >
+              <Sparkles size={14} />
+              AI Edit
             </button>
           </div>
         )}
@@ -244,6 +292,15 @@ export default function SnapDetailPage() {
           </div>
         </div>
         </>
+      )}
+
+      {snap.photoUrl && (
+        <ImageEditModal
+          visible={showAIEdit}
+          photoUrl={snap.photoUrl}
+          onClose={() => setShowAIEdit(false)}
+          onSave={(editedUrl) => setAiEditedImageUrl(editedUrl)}
+        />
       )}
     </div>
   );

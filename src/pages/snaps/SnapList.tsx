@@ -4,6 +4,7 @@ import { listSnaps } from '../../services/api';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { FeatureCard } from '../../components/shared/FeatureCard';
 import { GroupedFeatureList } from '../../components/shared/GroupedFeatureList';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { Snap } from '../../types/common';
 
 export default function SnapListPage() {
@@ -18,7 +19,7 @@ export default function SnapListPage() {
     <div>
       <PageHeader icon={<Camera size={22} />} title="Snaps" count={snaps.length} />
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>Loading...</p>
+        <LoadingSpinner message="Loading snaps..." />
       ) : (
         <GroupedFeatureList
           records={snaps}

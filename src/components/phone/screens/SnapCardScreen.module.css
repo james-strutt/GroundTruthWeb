@@ -44,7 +44,7 @@
   height: 5px;
   background: var(--sage-bright);
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(101,163,13,0.5);
+  box-shadow: 0 0 4px rgba(139,144,128,0.5);
   animation: gpsPulse 2s ease-in-out infinite 1s;
 }
 
@@ -126,7 +126,7 @@
 
 /* Address */
 .address {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-brand);
   font-size: 14px;
   font-weight: 400;
   color: var(--stone-900);
@@ -136,7 +136,7 @@
 }
 
 .lotInfo {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 8px;
   color: var(--stone-500);
   animation: contentIn 0.4s ease 0.85s both;
@@ -170,7 +170,7 @@
 }
 
 .planValue {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   font-weight: 600;
   color: var(--stone-900);
@@ -226,7 +226,7 @@
 }
 
 .scoreText {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-weight: 600;
   font-size: 9px;
   position: relative;
@@ -312,7 +312,7 @@
 .salesMeta { font-size: 8px; color: var(--stone-500); }
 
 .salesRange {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 14px;
   font-weight: 700;
   color: var(--stone-900);
@@ -367,8 +367,8 @@
 }
 
 @keyframes gpsPulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(101,163,13,0.5); }
-  50% { box-shadow: 0 0 8px rgba(101,163,13,0.8), 0 0 16px rgba(101,163,13,0.3); }
+  0%, 100% { box-shadow: 0 0 4px rgba(139,144,128,0.5); }
+  50% { box-shadow: 0 0 8px rgba(139,144,128,0.8), 0 0 16px rgba(139,144,128,0.3); }
 }
 
 @keyframes badgePulse {

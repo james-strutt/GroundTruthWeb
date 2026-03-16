@@ -121,7 +121,7 @@
 .rangeAmounts {
   display: flex;
   justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 7px;
   color: var(--stone-500);
   margin-top: 2px;
@@ -142,7 +142,7 @@
 }
 
 .bestAmount {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 12px;
   font-weight: 700;
   color: var(--stone-900);
@@ -208,7 +208,7 @@
 }
 
 .confNum {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 14px;
   font-weight: 700;
   color: var(--terracotta);
@@ -296,7 +296,7 @@
 }
 
 .compPrice {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   font-size: 9px;
   font-weight: 700;
   color: var(--stone-900);

@@ -4,55 +4,12 @@
  */
 
 import { supabase } from '../supabaseClient';
-
-const INSPECT_SYSTEM_PROMPT = [
-  'You are GroundTruth, an expert Australian building inspector.',
-  'Analyse the photograph for condition, materials, defects, and improvements.',
-  'Your response MUST be valid JSON with these fields:',
-  '- conditionScore (number): 1-10 condition rating',
-  '- materials (string[]): materials visible',
-  '- defects ({type, severity, description}[]): severity is "minor", "moderate", or "major"',
-  '- improvements (string[]): visible improvements',
-  '- constructionEra (string|null): estimated construction period',
-  '- narrative (string): detailed description',
-  'Use Australian English. Return raw JSON only.',
-].join('\n');
-
-const EXPLORE_SYSTEM_PROMPT = [
-  'You are GroundTruth, an expert urban planner and liveability analyst.',
-  'Assess the streetscape quality and liveability factors visible.',
-  'Your response MUST be valid JSON with these fields:',
-  '- walkability: {score (1-10), notes (string)}',
-  '- streetscape: {score (1-10), notes (string)}',
-  '- amenity: {score (1-10), visible (string[])}',
-  '- safety: {score (1-10), notes (string)}',
-  '- notableFeatures (string[]): positive features',
-  '- concerns (string[]): negative observations',
-  'Use Australian English. Return raw JSON only.',
-].join('\n');
-
-const SNAP_SYSTEM_PROMPT = [
-  'You are GroundTruth, an expert Australian property analyst.',
-  'You are shown a photograph of a property along with spatial planning data.',
-  'Analyse the photograph and return a structured JSON assessment.',
-  '',
-  'Your response MUST be valid JSON with these fields:',
-  '- summary (string): 2-3 sentence plain-English overview',
-  '- propertyType (string): e.g. "detached dwelling", "semi-detached", "apartment block"',
-  '- condition (string): one of "excellent", "good", "fair", "poor", "derelict"',
-  '- estimatedAge (string|null): e.g. "5-10 years", "1960s"',
-  '- storeys (number|null): visible storeys',
-  '- constructionMaterial (string|null): primary wall material',
-  '- roofMaterial (string|null): roof type and material',
-  '- frontage (string|null): description of street frontage',
-  '- landscaping (string|null): garden/landscape quality',
-  '- observations (string[]): notable features or characteristics',
-  '- risks (string[]): identified concerns',
-  '- opportunities (string[]): potential improvements',
-  '- confidenceScore (number): 0.0-1.0 confidence',
-  '',
-  'Use Australian English. Be specific. Return raw JSON only.',
-].join('\n');
+import {
+  buildSnapSystemPrompt,
+  buildInspectSystemPrompt,
+  buildStreetscapeSystemPrompt,
+} from '../constants/aiPrompts';
+import type { SnapPromptContext } from '../constants/aiPrompts';
 
 interface VisionResponse {
   content: string;
@@ -168,11 +125,20 @@ async function callVisionEdgeFunction(
     parsedJson = JSON.parse(content) as Record<string, unknown>;
   } catch {
     // Try extracting JSON from markdown code fences
-    const match = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match?.[1]) {
+    const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch?.[1]) {
       try {
-        parsedJson = JSON.parse(match[1]) as Record<string, unknown>;
+        parsedJson = JSON.parse(fenceMatch[1]) as Record<string, unknown>;
       } catch { /* not valid JSON */ }
+    }
+    // Try finding a raw JSON object in the content
+    if (!parsedJson) {
+      const objectMatch = content.match(/\{[\s\S]*\}/);
+      if (objectMatch) {
+        try {
+          parsedJson = JSON.parse(objectMatch[0]) as Record<string, unknown>;
+        } catch { /* not valid JSON */ }
+      }
     }
   }
 
@@ -197,8 +163,17 @@ export async function reanalyseSnap(
     throw new Error('Failed to load photo from storage. The image may have been deleted.');
   }
 
+  const snapCtx: SnapPromptContext = {
+    address,
+    areaSqm: null,
+    zoneCode: null,
+    zoneLabel: null,
+    fsr: null,
+    hobMetres: null,
+  };
+  const systemPrompt = buildSnapSystemPrompt(snapCtx);
   const userPrompt = `Analyse this property at ${address}. Return your assessment as JSON.`;
-  const result = await callVisionEdgeFunction(base64, SNAP_SYSTEM_PROMPT, userPrompt);
+  const result = await callVisionEdgeFunction(base64, systemPrompt, userPrompt);
 
   if (!result.parsedJson) {
     throw new Error('AI did not return valid JSON. Raw: ' + result.content.slice(0, 100));
@@ -216,7 +191,11 @@ export async function reanalyseInspectionPhoto(
   tag: string,
 ): Promise<Record<string, unknown>> {
   const base64 = await photoUrlToBase64(photoUrl);
-  const systemPrompt = INSPECT_SYSTEM_PROMPT;
+  const systemPrompt = buildInspectSystemPrompt({
+    photoLabel: tag,
+    tags: [tag],
+    caption: null,
+  });
   const userPrompt = `Inspect this ${tag} photo of the property at ${address}. Return your assessment as JSON.`;
   const result = await callVisionEdgeFunction(base64, systemPrompt, userPrompt);
   if (!result.parsedJson) throw new Error('AI did not return valid JSON');
@@ -231,9 +210,91 @@ export async function reanalyseWalkPhoto(
   location: string,
 ): Promise<Record<string, unknown>> {
   const base64 = await photoUrlToBase64(photoUrl);
-  const systemPrompt = EXPLORE_SYSTEM_PROMPT;
+  const systemPrompt = buildStreetscapeSystemPrompt({
+    streetName: location,
+    photoIndex: 0,
+    photoCount: 1,
+  });
   const userPrompt = `Assess this streetscape photograph taken near ${location}. Return your assessment as JSON.`;
   const result = await callVisionEdgeFunction(base64, systemPrompt, userPrompt);
   if (!result.parsedJson) throw new Error('AI did not return valid JSON');
   return result.parsedJson;
+}
+
+/**
+ * Edit a photo using AI (Google Gemini) via the gemini-image-edit edge function.
+ * Converts the photo to base64, sends it with the prompt, and returns
+ * a data URL of the edited image.
+ */
+export async function editImageWithAI(
+  photoUrl: string,
+  editPrompt: string,
+): Promise<{ editedImageUrl: string }> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!photoUrl.startsWith('http')) {
+    throw new Error('Photo not yet synced to cloud. Re-sync from the iOS app first.');
+  }
+
+  const base64 = await photoUrlToBase64(photoUrl);
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/gemini-image-edit`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseKey}`,
+      'apikey': supabaseKey,
+    },
+    body: JSON.stringify({ image: base64, prompt: editPrompt }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`Image edit failed (${response.status}): ${errBody.slice(0, 200)}`);
+  }
+
+  const data = await response.json() as { editedImage?: string; mimeType?: string; error?: string };
+
+  if (data.error) {
+    throw new Error(`Image edit error: ${data.error}`);
+  }
+
+  if (!data.editedImage) {
+    throw new Error('Gemini did not return an edited image');
+  }
+
+  const mimeType = data.mimeType ?? 'image/png';
+  const editedImageUrl = `data:${mimeType};base64,${data.editedImage}`;
+
+  return { editedImageUrl };
+}
+
+/**
+ * Refine/integrate voice transcription with existing text using AI.
+ * Uses a minimal placeholder image since the edge function requires one.
+ */
+const REFINE_SYSTEM_PROMPT = [
+  'You are GroundTruth, an expert property analyst assistant.',
+  'The user has existing text about a property and wants to integrate new notes from a voice transcription.',
+  'Merge the voice notes into the existing text naturally, preserving the original structure and adding new information.',
+  'If the existing text is empty, just clean up the voice transcription into professional property notes.',
+  'Return ONLY the refined text as a plain string, no JSON wrapping, no code fences, no explanations.',
+  'Use Australian English.',
+].join('\n');
+
+// 1x1 white JPEG placeholder for text-only prompts
+const PLACEHOLDER_IMAGE = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AKwA=';
+
+export async function refineTextWithAI(
+  existingText: string,
+  voiceTranscription: string,
+): Promise<string> {
+  const userPrompt = existingText
+    ? `Existing text:\n"${existingText}"\n\nNew voice notes to integrate:\n"${voiceTranscription}"\n\nReturn the merged text.`
+    : `Voice notes to refine into professional property notes:\n"${voiceTranscription}"\n\nReturn the refined text.`;
+
+  const result = await callVisionEdgeFunction(PLACEHOLDER_IMAGE, REFINE_SYSTEM_PROMPT, userPrompt);
+  return result.content.trim();
 }

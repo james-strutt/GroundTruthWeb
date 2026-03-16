@@ -4,6 +4,7 @@ import { listWatched } from '../../services/api';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { FeatureCard } from '../../components/shared/FeatureCard';
 import { GroupedFeatureList } from '../../components/shared/GroupedFeatureList';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { WatchedProperty } from '../../types/common';
 
 export default function MonitorListPage() {
@@ -18,7 +19,7 @@ export default function MonitorListPage() {
     <div>
       <PageHeader icon={<Eye size={22} />} title="Monitored Properties" count={items.length} />
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>Loading...</p>
+        <LoadingSpinner message="Loading properties..." />
       ) : (
         <GroupedFeatureList
           records={items}

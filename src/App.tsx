@@ -15,35 +15,35 @@ const FEATURES = [
   {
     id: 'snap',
     title: 'Snap',
-    tagline: 'Point. Shoot. Know.',
-    description: 'Aim your camera at any property and get an instant AI assessment — condition scoring, hazard overlays, comparable sales, and planning controls in seconds.',
+    tagline: 'Capture and analyse in under 60 seconds',
+    description: 'Aim your camera at any property and get an instant AI assessment. Condition scoring, hazard overlays, and planning controls — no paperwork, no delays.',
     Screen: SnapCardScreen,
   },
   {
     id: 'inspect',
     title: 'Inspect',
-    tagline: 'Structured multi-photo inspections',
-    description: 'Capture tagged photos for every angle — frontage, boundaries, vegetation, defects. AI scores each shot in real-time and builds a complete property report.',
+    tagline: 'Never miss a defect again',
+    description: 'Capture tagged photos for every angle and let AI score each shot in real-time. Walk away with a complete property report before you leave the site.',
     Screen: InspectScreen,
   },
   {
     id: 'appraise',
     title: 'Appraise',
-    tagline: 'Photo-verified comparable sales',
-    description: 'Go beyond desktop valuations. Drive past comparable sales, snap a photo, and let AI adjust for condition differences. Build confidence in your price estimate.',
+    tagline: 'Data-backed valuations you can trust',
+    description: 'Go beyond desktop valuations. Drive past comparable sales, snap a photo, and let AI adjust for condition differences you can see with your own eyes.',
     Screen: AppraiseScreen,
   },
   {
     id: 'monitor',
     title: 'Monitor',
-    tagline: 'AI-powered change detection',
-    description: 'Track properties over time. Revisit, photograph, and let AI detect structural changes, vegetation removal, and new development — with DA cross-referencing.',
+    tagline: 'Catch changes before they become problems',
+    description: 'Track properties over time with AI-powered change detection. Spot structural shifts, vegetation removal, and new development — cross-referenced against DA records.',
     Screen: MonitorScreen,
   },
   {
     id: 'explore',
     title: 'Explore',
-    tagline: 'Walk. Observe. Score.',
+    tagline: 'Walk scores and insights, hands-free',
     description: 'Hit the pavement and let AI observe the neighbourhood in real-time. Get walkability, streetscape, amenity, and safety scores as you move through an area.',
     Screen: ExploreScreen,
   },
@@ -56,6 +56,7 @@ function App() {
       <Hero />
       <Divider />
       <FeaturesSection />
+      <SocialProof />
       <HowItWorks />
       <FinalCTA />
       <Footer />
@@ -91,12 +92,16 @@ function Hero() {
         <div className={styles.heroText}>
           <span className={styles.heroBadge}>Coming soon to iOS</span>
           <h1 className={`${styles.heroTitle} fade-up`}>
-            AI-powered property<br />field intelligence
+            See what others miss.<br />From the field.
           </h1>
           <p className={`${styles.heroSub} fade-up delay-1`}>
-            Point your camera at any property. Get instant condition scoring, hazard overlays, comparable sales, and planning data — all from the field.
+            Point your camera at any property and get instant AI-powered condition scoring, hazard overlays, comparable sales, and planning data — no office required.
           </p>
-          <WaitlistForm className="fade-up delay-2" />
+          <div className={`${styles.heroCtas} fade-up delay-2`}>
+            <a href="#waitlist" className={styles.heroCtaBtn}>Get early access</a>
+            <a href="#features" className={styles.heroCtaSecondary}>See how it works</a>
+          </div>
+          <WaitlistForm className="fade-up delay-3" />
         </div>
 
         <div className={`${styles.heroPhone} fade-up delay-2`}>
@@ -160,6 +165,25 @@ function FeaturesSection() {
   );
 }
 
+/* ── Social proof ──────────────── */
+
+function SocialProof() {
+  return (
+    <section className={styles.socialProof}>
+      <p className={styles.socialProofText}>
+        Built for Australian property professionals — valuers, inspectors, buyers&rsquo; agents, and developers.
+      </p>
+      <div className={styles.socialProofMarkers}>
+        <span className={styles.socialProofMarker}>NSW Spatial Data</span>
+        <span className={styles.socialProofDot} />
+        <span className={styles.socialProofMarker}>AI Vision Analysis</span>
+        <span className={styles.socialProofDot} />
+        <span className={styles.socialProofMarker}>DA Cross-referencing</span>
+      </div>
+    </section>
+  );
+}
+
 /* ── How it works ──────────────── */
 
 function HowItWorks() {
@@ -167,23 +191,28 @@ function HowItWorks() {
     <section className={styles.howSection} id="how-it-works">
       <div className={`${styles.sectionHeader} fade-up`}>
         <span className={styles.sectionTag}>How it works</span>
-        <h2 className={styles.sectionTitle}>Three steps to field intelligence</h2>
+        <h2 className={styles.sectionTitle}>Four steps to field intelligence</h2>
       </div>
       <div className={styles.stepsGrid}>
-        <Step num="1" title="Point your camera" desc="Open GroundTruth, aim at any property, and tap the shutter. GPS and compass auto-tag the shot." />
-        <Step num="2" title="AI does the heavy lifting" desc="In seconds, AI analyses the photo against NSW spatial data — planning controls, hazards, comparable sales, and condition." />
-        <Step num="3" title="Act with confidence" desc="Share reports, track changes over time, verify valuations from the field, and explore neighbourhoods on foot." />
+        <Step num="1" title="Point your camera" desc="Open GroundTruth, aim at any property, and tap the shutter. GPS and compass auto-tag the shot." time="2 seconds" />
+        <Step num="2" title="AI does the heavy lifting" desc="AI analyses the photo against NSW spatial data — planning controls, hazards, comparable sales, and condition." time="Under 60 seconds" />
+        <Step num="3" title="Review and refine" desc="Edit AI findings inline, add voice notes, and re-analyse with a tap. Your expertise stays in the loop." time="Instant" />
+        <Step num="4" title="Act with confidence" desc="Share reports, track changes over time, verify valuations from the field, and explore neighbourhoods on foot." time="Ongoing" />
       </div>
+      <p className={`${styles.stepsFootnote} fade-up`}>
+        What used to take hours of desktop research now happens on-site, in minutes.
+      </p>
     </section>
   );
 }
 
-function Step({ num, title, desc }: { num: string; title: string; desc: string }) {
+function Step({ num, title, desc, time }: { num: string; title: string; desc: string; time?: string }) {
   return (
     <div className={`${styles.step} fade-up delay-${num}`}>
       <div className={styles.stepNum}>{num}</div>
       <h3 className={styles.stepTitle}>{title}</h3>
       <p className={styles.stepDesc}>{desc}</p>
+      {time && <span className={styles.stepTime}>{time}</span>}
     </div>
   );
 }

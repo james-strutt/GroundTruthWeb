@@ -64,7 +64,7 @@ export function MeasureTools({ mode, onModeChange, distance, area, onClear }: Me
               {area !== null && <span className={styles.result}>{formatArea(area)}</span>}
             </>
           )}
-          {distance === null && <span className={styles.hint}>Click on map to start measuring</span>}
+          {distance === null && <span className={styles.hint}>Click to add points. Double-click to finish. Press Escape to cancel.</span>}
         </div>
       )}
     </div>

@@ -130,8 +130,8 @@ interface MapLegendProps {
 }
 
 const DA_STATUS_COLOURS = [
-  { label: 'Approved', colour: '#65A30D' },
-  { label: 'Under Assessment', colour: '#D97706' },
+  { label: 'Approved', colour: '#8B9080' },
+  { label: 'Under Assessment', colour: '#B0A08A' },
   { label: 'On Exhibition', colour: '#3B82F6' },
   { label: 'Refused', colour: '#DC2626' },
   { label: 'Other', colour: '#78716C' },

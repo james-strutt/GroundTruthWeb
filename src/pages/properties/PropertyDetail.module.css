@@ -1,0 +1,312 @@
+/* PropertyDetail — tabbed property view */
+
+.page {
+  width: 100%;
+}
+
+.propertyHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.address {
+  font-family: var(--font-brand);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.statusBadge {
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.statusActive {
+  color: var(--sage);
+  background: rgba(63, 98, 18, 0.08);
+}
+
+.statusUnderOffer {
+  color: var(--terracotta);
+  background: rgba(212, 101, 59, 0.08);
+}
+
+.statusSettled {
+  color: var(--amber);
+  background: rgba(176, 160, 138, 0.1);
+}
+
+.statusArchived {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Tab bar */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(212, 101, 59, 0.25);
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  color: var(--terracotta);
+  border-bottom-color: var(--terracotta);
+}
+
+.tabCount {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* Overview tab */
+.overviewGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.overviewCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 101, 59, 0.25);
+  border-radius: 10px;
+  padding: 1rem;
+  
+}
+
+.overviewCardFull {
+  composes: overviewCard;
+  grid-column: 1 / -1;
+}
+
+.overviewLabel {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.overviewValue {
+  font-family: var(--font-data);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.overviewText {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.completenessGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.completenessItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.65rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.completenessIcon {
+  color: var(--text-muted);
+}
+
+.completenessIconActive {
+  color: var(--terracotta);
+}
+
+.completenessLabel {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.completenessCount {
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Notes editing */
+.notesArea {
+  width: 100%;
+  min-height: 80px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid rgba(212, 101, 59, 0.25);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.notesArea:focus {
+  border-color: var(--terracotta);
+}
+
+.notesSaveRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.saveButton {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  background: var(--terracotta);
+  color: white;
+  transition: opacity 0.15s;
+}
+
+.saveButton:hover {
+  opacity: 0.9;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Activity list sections */
+.sectionTitle {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.activityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.5rem;
+}
+
+.emptyTab {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.loading {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+}
+
+@media (max-width: 768px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .completenessGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .activityGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .propertyHeader {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .address {
+    font-size: 1.25rem;
+  }
+
+  .tabs {
+    gap: 0;
+  }
+
+  .tab {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.75rem;
+  }
+}

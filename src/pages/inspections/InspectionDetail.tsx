@@ -1,109 +1,244 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, AlertTriangle, Trash2, X, RefreshCw } from 'lucide-react';
-import { getInspection, updateInspectionReportField, deleteInspection, deleteInspectionPhoto } from '../../services/api';
+import { ArrowLeft, MapPin, AlertTriangle, Trash2, X, RefreshCw, Sparkles } from 'lucide-react';
+import { getInspection, updateInspectionReportField, updateInspectionPhotoAnalysis, deleteInspection, deleteInspectionPhoto } from '../../services/api';
 import { reanalyseInspectionPhoto } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
+import { ImageEditModal } from '../../components/shared/ImageEditModal';
 import { InlineDiff } from '../../components/shared/InlineDiff';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
+import { ConfirmModal } from '../../components/shared/ConfirmModal';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { Inspection } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
+
+interface PhotoAnalysis {
+  conditionScore: number;
+  narrative: string;
+  materials: string[];
+  buildingElement?: string;
+  defects: { defectType?: string; type?: string; severity: string; nature?: string[]; description: string; crackingCategory?: number | null }[];
+  safetyHazard?: boolean;
+  improvements: string[];
+  constructionEra?: string | null;
+  limitations?: string[];
+  furtherInspection?: string | null;
+}
 
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [record, setRecord] = useState<Inspection | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePhotoIdx, setDeletePhotoIdx] = useState<number | null>(null);
   const [isReanalysing, setIsReanalysing] = useState(false);
+  const [reanalyseProgress, setReanalyseProgress] = useState({ current: 0, total: 0 });
+  const [reanalysingSingleIdx, setReanalysingSingleIdx] = useState<number | null>(null);
   const [pendingNarrative, setPendingNarrative] = useState<string | null>(null);
-  const [reanalysePhotoIdx, setReanalysePhotoIdx] = useState<number | null>(null);
+  const [pendingPhotoAnalysis, setPendingPhotoAnalysis] = useState<Record<number, Record<string, unknown>>>({});
+  const [aiEditPhotoUri, setAiEditPhotoUri] = useState<string | null>(null);
+  const [aiEditedImages, setAiEditedImages] = useState<Record<number, string>>({});
 
-  useEffect(() => {
+  const fetchInspection = useCallback(async () => {
     if (!id) return;
-    void getInspection(id).then((d) => { setRecord(d); setLoading(false); });
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await getInspection(id);
+      setRecord(d);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load inspection');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  async function handleReanalyse() {
+  useEffect(() => {
+    void fetchInspection();
+  }, [fetchInspection]);
+
+  async function handleReanalyse(): Promise<void> {
     if (!record || record.photos.length === 0 || isReanalysing) return;
-    // Find the first photo with a cloud URL
-    const photoIdx = record.photos.findIndex((p) => p.uri.startsWith('http'));
-    if (photoIdx === -1) {
+
+    const cloudPhotos = record.photos
+      .map((p, i) => ({ photo: p, index: i }))
+      .filter(({ photo }) => photo.uri.startsWith('http'));
+
+    if (cloudPhotos.length === 0) {
       alert('Photos not synced to cloud. Re-sync from the iOS app first.');
       return;
     }
-    const photo = record.photos[photoIdx]!;
+
     setIsReanalysing(true);
-    setReanalysePhotoIdx(photoIdx);
+    setReanalyseProgress({ current: 0, total: cloudPhotos.length });
+
+    const results: Record<number, Record<string, unknown>> = {};
+
+    for (const { photo, index } of cloudPhotos) {
+      setReanalyseProgress((prev) => ({ ...prev, current: prev.current + 1 }));
+      try {
+        const tag = photo.tags?.[0]?.label ?? 'general';
+        const result = await reanalyseInspectionPhoto(photo.uri, record.address, tag);
+        results[index] = result;
+        setPendingPhotoAnalysis((prev) => ({ ...prev, [index]: result }));
+      } catch {
+        // Skip failed photos, continue with the rest
+      }
+    }
+
+    // If there's a report narrative and the first photo produced a narrative, suggest it
+    const firstResult = results[cloudPhotos[0]?.index ?? 0];
+    if (firstResult && typeof firstResult['narrative'] === 'string' && record.report) {
+      setPendingNarrative(firstResult['narrative'] as string);
+    }
+
+    setIsReanalysing(false);
+    setReanalyseProgress({ current: 0, total: 0 });
+  }
+
+  async function handleReanalyseSingle(photoIdx: number): Promise<void> {
+    if (!record || isReanalysing || reanalysingSingleIdx !== null) return;
+    const photo = record.photos[photoIdx];
+    if (!photo || !photo.uri.startsWith('http')) {
+      alert('This photo is not synced to cloud. Re-sync from the iOS app first.');
+      return;
+    }
+    setReanalysingSingleIdx(photoIdx);
     try {
       const tag = photo.tags?.[0]?.label ?? 'general';
       const result = await reanalyseInspectionPhoto(photo.uri, record.address, tag);
-
-      // Build a new analysis object for this photo
-      const newAnalysis = {
-        conditionScore: typeof result['conditionScore'] === 'number' ? result['conditionScore'] : 5,
-        materials: Array.isArray(result['materials']) ? result['materials'] as string[] : [],
-        defects: Array.isArray(result['defects']) ? result['defects'] as { type: string; severity: string; description: string }[] : [],
-        improvements: Array.isArray(result['improvements']) ? result['improvements'] as string[] : [],
-        narrative: typeof result['narrative'] === 'string' ? result['narrative'] : '',
-      };
-
-      // Update the photo's analysis in local state
-      setRecord((prev) => {
-        if (!prev) return prev;
-        const updatedPhotos = prev.photos.map((p, i) =>
-          i === photoIdx ? { ...p, analysis: newAnalysis } : p,
-        );
-        return { ...prev, photos: updatedPhotos };
-      });
-
-      // Also update the report narrative if there is one
-      const newNarrative = newAnalysis.narrative;
-      if (newNarrative && record.report) {
-        setPendingNarrative(newNarrative);
-      }
-
-      // Sync photo analysis to Supabase
-      if (record.id) {
-        const { data: row } = await (await import('../../supabaseClient')).supabase?.from('inspections').select('photos').eq('id', record.id).single() ?? { data: null };
-        if (row) {
-          const photos = (row.photos ?? []) as Record<string, unknown>[];
-          if (photos[photoIdx]) {
-            photos[photoIdx] = { ...photos[photoIdx], analysis: newAnalysis };
-            await (await import('../../supabaseClient')).supabase?.from('inspections').update({ photos }).eq('id', record.id);
-          }
-        }
-      }
+      setPendingPhotoAnalysis((prev) => ({ ...prev, [photoIdx]: result }));
     } catch (err: unknown) {
       alert(`Re-analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setIsReanalysing(false);
-      setReanalysePhotoIdx(null);
+      setReanalysingSingleIdx(null);
     }
   }
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
-  if (!record) return <p className={styles.loading}>Inspection not found.</p>;
+  function acceptPhotoField(photoIdx: number, key: string, value: string): void {
+    if (!record) return;
+
+    const parsed = key === 'materials'
+      ? value.split('\n').filter((v) => v.trim())
+      : key === 'defects'
+        ? parseDefectsString(value)
+        : key === 'improvements'
+          ? value.split('\n').filter((v) => v.trim())
+          : key === 'conditionScore'
+            ? parseInt(value, 10) || 5
+            : value;
+
+    void updateInspectionPhotoAnalysis(record.id, photoIdx, key, parsed);
+
+    setRecord((prev) => {
+      if (!prev) return prev;
+      const updatedPhotos = prev.photos.map((p, i) => {
+        if (i !== photoIdx) return p;
+        const existing = (p.analysis ?? {}) as Record<string, unknown>;
+        return { ...p, analysis: { ...existing, [key]: parsed } };
+      });
+      return { ...prev, photos: updatedPhotos };
+    });
+
+    // Remove this field from pending
+    setPendingPhotoAnalysis((prev) => {
+      const photoPending = { ...prev[photoIdx] };
+      delete photoPending[key];
+      const next = { ...prev };
+      if (Object.keys(photoPending).length === 0) {
+        delete next[photoIdx];
+      } else {
+        next[photoIdx] = photoPending;
+      }
+      return next;
+    });
+  }
+
+  function rejectPhotoField(photoIdx: number, key: string): void {
+    setPendingPhotoAnalysis((prev) => {
+      const photoPending = { ...prev[photoIdx] };
+      delete photoPending[key];
+      const next = { ...prev };
+      if (Object.keys(photoPending).length === 0) {
+        delete next[photoIdx];
+      } else {
+        next[photoIdx] = photoPending;
+      }
+      return next;
+    });
+  }
+
+  function acceptAllPhotoFields(photoIdx: number): void {
+    const pending = pendingPhotoAnalysis[photoIdx];
+    if (!pending) return;
+    for (const [key, val] of Object.entries(pending)) {
+      const strVal = stringifyAnalysisValue(val);
+      acceptPhotoField(photoIdx, key, strVal);
+    }
+  }
+
+  function rejectAllPhotoFields(photoIdx: number): void {
+    setPendingPhotoAnalysis((prev) => {
+      const next = { ...prev };
+      delete next[photoIdx];
+      return next;
+    });
+  }
+
+  if (loading) return <LoadingSpinner message="Loading inspection..." />;
+  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchInspection(); }} />;
+  if (!record) return <ErrorMessage type="notFound" message="Inspection not found" />;
 
   const report = record.report;
 
   return (
     <div className={styles.page}>
+      <Breadcrumb segments={[{ label: 'Dashboard', path: '/app' }, { label: 'Inspections', path: '/app/inspections' }, { label: record.address }]} />
       <div className={styles.topBar}>
         <button className={styles.backButton} onClick={() => navigate('/app/inspections')}>
           <ArrowLeft size={18} /> Back to Inspections
         </button>
         <button
           className={styles.deleteButton}
-          onClick={async () => {
-            if (window.confirm('Delete this inspection? This cannot be undone.')) {
-              await deleteInspection(record.id);
-              navigate('/app/inspections');
-            }
-          }}
+          onClick={() => setShowDeleteConfirm(true)}
         >
           <Trash2 size={14} /> Delete
         </button>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Inspection"
+          message="Delete this inspection? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            await deleteInspection(record.id);
+            navigate('/app/inspections');
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {deletePhotoIdx !== null && (
+        <ConfirmModal
+          title="Delete Photo"
+          message="Delete this photo? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            const idx = deletePhotoIdx;
+            setDeletePhotoIdx(null);
+            const ok = await deleteInspectionPhoto(record.id, idx);
+            if (ok) setRecord((prev) => prev ? { ...prev, photos: prev.photos.filter((_, i) => i !== idx) } : prev);
+          }}
+          onCancel={() => setDeletePhotoIdx(null)}
+        />
+      )}
 
       <div className={styles.heroInfo}>
         <h1 className={styles.address}>{record.address}</h1>
@@ -125,7 +260,9 @@ export default function InspectionDetailPage() {
         <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
           <button className={styles.reanalyseBtn} onClick={() => void handleReanalyse()} disabled={isReanalysing}>
             <RefreshCw size={14} className={isReanalysing ? styles.spinning : ''} />
-            {isReanalysing ? `Analysing photo ${(reanalysePhotoIdx ?? 0) + 1}...` : 'Re-analyse with AI'}
+            {isReanalysing
+              ? `Analysing photo ${reanalyseProgress.current} of ${reanalyseProgress.total}...`
+              : 'Re-analyse all photos'}
           </button>
         </div>
       )}
@@ -156,76 +293,150 @@ export default function InspectionDetailPage() {
       {record.photos.length > 0 && (
         <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <h2 className={styles.cardTitle}>Photos ({record.photos.length})</h2>
-          {record.photos.map((p, i) => (
-            <div key={i} className={styles.card} style={{ padding: '0', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', gap: '0', alignItems: 'stretch' }}>
-                {/* Photo */}
-                <div style={{ width: '200px', height: '150px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-                  <ClickableImage src={p.uri} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {p.tags.length > 0 && (
-                    <div style={{ position: 'absolute', bottom: '4px', left: '4px', display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                      {p.tags.map((t, ti) => (
-                        <span key={ti} style={{ background: 'rgba(0,0,0,0.7)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: '#fff' }}>{t.label}</span>
-                      ))}
+          {record.photos.map((p, i) => {
+            const pending = pendingPhotoAnalysis[i];
+            const analysis = p.analysis as PhotoAnalysis | undefined;
+
+            return (
+              <div key={i}>
+                <div className={styles.photoCard} style={{ padding: '0', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', gap: '0', alignItems: 'stretch' }}>
+                    {/* Photo */}
+                    <div style={{ width: '200px', height: '150px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+                      <ClickableImage src={p.uri} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {p.tags.length > 0 && (
+                        <div style={{ position: 'absolute', bottom: '4px', left: '4px', display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                          {p.tags.map((t, ti) => (
+                            <span key={ti} style={{ background: 'rgba(0,0,0,0.7)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: '#fff' }}>{t.label}</span>
+                          ))}
+                        </div>
+                      )}
+                      {/* Per-photo re-analyse */}
+                      {p.uri.startsWith('http') && (
+                        <div style={{ position: 'absolute', top: '4px', left: '4px', display: 'flex', gap: '3px' }}>
+                          <button
+                            style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}
+                            onClick={(e) => { e.stopPropagation(); void handleReanalyseSingle(i); }}
+                            disabled={isReanalysing || reanalysingSingleIdx !== null}
+                            title="Re-analyse this photo"
+                          >
+                            <RefreshCw size={10} className={reanalysingSingleIdx === i ? styles.spinning : ''} />
+                          </button>
+                          <button
+                            style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(194,65,12,0.85)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+                            onClick={(e) => { e.stopPropagation(); setAiEditPhotoUri(p.uri); }}
+                            title="AI image edit"
+                          >
+                            <Sparkles size={10} />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletePhotoIdx(i);
+                        }}
+                        title="Delete photo"
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
-                  )}
-                  <button
-                    style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#EF4444' }}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Delete this photo?')) {
-                        const ok = await deleteInspectionPhoto(record.id, i);
-                        if (ok) setRecord((prev) => prev ? { ...prev, photos: prev.photos.filter((_, idx) => idx !== i) } : prev);
-                      }
-                    }}
-                    title="Delete photo"
-                  >
-                    <X size={12} />
-                  </button>
+
+                    {/* Analysis — editable */}
+                    <div style={{ flex: 1, padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {analysis ? (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontFamily: 'var(--font-data)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {analysis.conditionScore}/10
+                            </span>
+                            <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', color: 'var(--text-muted)' }}>condition</span>
+                          </div>
+                          <EditableText
+                            value={analysis.narrative}
+                            multiline
+                            onSave={async (v) => {
+                              await updateInspectionPhotoAnalysis(record.id, i, 'narrative', v);
+                              setRecord((prev) => {
+                                if (!prev) return prev;
+                                const photos = prev.photos.map((ph, idx) =>
+                                  idx === i ? { ...ph, analysis: { ...ph.analysis, narrative: v } } : ph,
+                                );
+                                return { ...prev, photos };
+                              });
+                            }}
+                            className={styles.summary}
+                          />
+                          {analysis.materials?.length > 0 && (
+                            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                              {analysis.materials.map((m, mi) => (
+                                <span key={mi} style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}>{m}</span>
+                              ))}
+                            </div>
+                          )}
+                          {analysis.safetyHazard && (
+                            <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '4px', padding: '0.3rem 0.5rem', fontSize: '0.6875rem', fontFamily: 'var(--font-data)', fontWeight: 600, color: '#ef4444', textTransform: 'uppercase' }}>
+                              Safety Hazard Identified
+                            </div>
+                          )}
+                          {analysis.defects?.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              {analysis.defects.map((d, di) => {
+                                const severity = d.severity === 'moderate' ? 'minor' : d.severity;
+                                const typeCode = d.defectType ?? '';
+                                return (
+                                  <div key={di} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    {typeCode && (
+                                      <span style={{ fontSize: '0.5rem', fontFamily: 'var(--font-data)', fontWeight: 700, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', padding: '0 3px', borderRadius: '2px' }}>
+                                        {typeCode}
+                                      </span>
+                                    )}
+                                    <span style={{ fontSize: '0.5625rem', fontFamily: 'var(--font-data)', fontWeight: 600, textTransform: 'uppercase', color: severity === 'major' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                      {severity}
+                                    </span>
+                                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>
+                                      {d.description}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {analysis.limitations && analysis.limitations.length > 0 && (
+                            <div style={{ fontSize: '0.625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              Limitations: {analysis.limitations.join('; ')}
+                            </div>
+                          )}
+                          {analysis.furtherInspection && (
+                            <div style={{ fontSize: '0.625rem', fontFamily: 'var(--font-body)', color: 'var(--accent-secondary)' }}>
+                              Recommend: {analysis.furtherInspection} inspection
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No AI analysis for this photo</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Analysis */}
-                <div style={{ flex: 1, padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {p.analysis ? (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontFamily: 'var(--font-data)', fontSize: '1.25rem', fontWeight: 700, color: p.analysis.conditionScore >= 7 ? '#65A30D' : p.analysis.conditionScore >= 4 ? '#D97706' : '#EF4444' }}>
-                          {p.analysis.conditionScore}/10
-                        </span>
-                        <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', color: 'var(--text-muted)' }}>condition</span>
-                      </div>
-                      <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                        {p.analysis.narrative}
-                      </p>
-                      {p.analysis.materials.length > 0 && (
-                        <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                          {p.analysis.materials.map((m, mi) => (
-                            <span key={mi} style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}>{m}</span>
-                          ))}
-                        </div>
-                      )}
-                      {p.analysis.defects.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          {p.analysis.defects.map((d, di) => (
-                            <div key={di} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <span style={{ fontSize: '0.5625rem', fontFamily: 'var(--font-data)', fontWeight: 600, textTransform: 'uppercase', color: d.severity === 'major' ? '#EF4444' : d.severity === 'moderate' ? '#D97706' : 'var(--text-muted)' }}>
-                                {d.severity}
-                              </span>
-                              <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>
-                                {d.description}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No AI analysis for this photo</span>
-                  )}
-                </div>
+                {/* Per-photo diff when pending analysis exists */}
+                {pending && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <InlineDiff
+                      title={`AI Suggestions — Photo ${i + 1}`}
+                      fields={buildPhotoDiffFields(analysis, pending)}
+                      onAccept={(key, newValue) => acceptPhotoField(i, key, newValue)}
+                      onReject={(key) => rejectPhotoField(i, key)}
+                      onAcceptAll={() => acceptAllPhotoFields(i)}
+                      onRejectAll={() => rejectAllPhotoFields(i)}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -263,12 +474,8 @@ export default function InspectionDetailPage() {
                 <span className={styles.detailValue}>{report.defectsBySeverity.minor}</span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Moderate</span>
-                <span className={styles.detailValue} style={{ color: '#D97706' }}>{report.defectsBySeverity.moderate}</span>
-              </div>
-              <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Major</span>
-                <span className={styles.detailValue} style={{ color: '#EF4444' }}>{report.defectsBySeverity.major}</span>
+                <span className={styles.detailValue}>{report.defectsBySeverity.major}</span>
               </div>
             </div>
           </div>
@@ -285,6 +492,95 @@ export default function InspectionDetailPage() {
           )}
         </div>
       )}
+
+      {/* AI edited images */}
+      {Object.keys(aiEditedImages).length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <h2 className={styles.cardTitle}>AI Edited Images</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem' }}>
+            {Object.entries(aiEditedImages).map(([idx, url]) => (
+              <div key={idx} style={{ position: 'relative', width: '200px', height: '150px', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(212,101,59,0.3)' }}>
+                <ClickableImage src={url} alt={`AI edited photo ${Number(idx) + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', background: 'rgba(212,101,59,0.9)', color: '#fff', fontFamily: 'var(--font-data)', fontSize: '0.625rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  AI Generated
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {aiEditPhotoUri && (
+        <ImageEditModal
+          visible={aiEditPhotoUri !== null}
+          photoUrl={aiEditPhotoUri}
+          onClose={() => setAiEditPhotoUri(null)}
+          onSave={(editedUrl) => {
+            const idx = record.photos.findIndex((p) => p.uri === aiEditPhotoUri);
+            if (idx >= 0) {
+              setAiEditedImages((prev) => ({ ...prev, [idx]: editedUrl }));
+            }
+          }}
+        />
+      )}
     </div>
   );
+}
+
+/* ---- Helpers ---- */
+
+const PHOTO_FIELD_LABELS: Record<string, string> = {
+  conditionScore: 'Condition Score',
+  narrative: 'Narrative',
+  materials: 'Materials',
+  defects: 'Defects',
+  improvements: 'Improvements',
+};
+
+function stringifyAnalysisValue(val: unknown): string {
+  if (Array.isArray(val)) {
+    if (val.length > 0 && typeof val[0] === 'object') {
+      return (val as { defectType?: string; severity: string; description: string }[])
+        .map((d) => {
+          const prefix = d.defectType ? `[${d.defectType}] ` : '';
+          return `${prefix}${d.severity}: ${d.description}`;
+        })
+        .join('\n');
+    }
+    return (val as string[]).join('\n');
+  }
+  if (val === null || val === undefined) return '';
+  return String(val);
+}
+
+function parseDefectsString(str: string): { defectType: string; severity: string; nature: string[]; description: string; crackingCategory: null }[] {
+  return str.split('\n').filter((l) => l.trim()).map((line) => {
+    const bracketMatch = line.match(/^\[([A-F])\]\s*/);
+    const defectType = bracketMatch ? bracketMatch[1] : 'A';
+    const rest = bracketMatch ? line.slice(bracketMatch[0].length) : line;
+    const colonIdx = rest.indexOf(':');
+    if (colonIdx > 0) {
+      const sevRaw = rest.slice(0, colonIdx).trim().toLowerCase();
+      const severity = sevRaw === 'major' ? 'major' : 'minor';
+      const description = rest.slice(colonIdx + 1).trim();
+      return { defectType, severity, nature: ['appearance'], description, crackingCategory: null };
+    }
+    return { defectType, severity: 'minor', nature: ['appearance'], description: rest.trim(), crackingCategory: null };
+  });
+}
+
+function buildPhotoDiffFields(
+  current: PhotoAnalysis | undefined,
+  pending: Record<string, unknown>,
+): { key: string; label: string; oldValue: string; newValue: string }[] {
+  return Object.entries(pending)
+    .filter(([key]) => key in PHOTO_FIELD_LABELS)
+    .map(([key, newVal]) => ({
+      key,
+      label: PHOTO_FIELD_LABELS[key] ?? key,
+      oldValue: current
+        ? stringifyAnalysisValue((current as unknown as Record<string, unknown>)[key])
+        : '',
+      newValue: stringifyAnalysisValue(newVal),
+    }));
 }

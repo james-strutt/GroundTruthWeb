@@ -10,7 +10,19 @@
 }
 
 .display:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
+  padding-bottom: calc(0.2rem - 1px);
+}
+
+.display:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.display:focus-visible .pencilIcon {
+  opacity: 0.6;
 }
 
 .pencilIcon {
@@ -35,8 +47,8 @@
 .textarea {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(194, 65, 12, 0.4);
+  background: var(--stone-100);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 6px;
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -48,7 +60,7 @@
 
 .input:focus,
 .textarea:focus {
-  border-color: #D4653B;
+  border-color: var(--terracotta);
 }
 
 .textarea {
@@ -68,18 +80,19 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.3rem 0.6rem;
-  background: #D4653B;
-  color: #FAF8F5;
+  background: var(--terracotta);
+  color: var(--warm-white);
   border: none;
   border-radius: 4px;
   font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .saveBtn:hover {
-  background: #9A3412;
+  background: var(--terracotta-dark);
 }
 
 .saveBtn:disabled {
@@ -92,12 +105,169 @@
   align-items: center;
   padding: 0.3rem;
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Voice-to-text */
+.micBtn {
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.display:hover .micBtn {
+  opacity: 0.6;
+}
+
+.micBtn:hover {
+  color: var(--terracotta) !important;
+  opacity: 1 !important;
+}
+
+.micBtnRecording {
+  color: var(--terracotta) !important;
+  opacity: 1 !important;
+  animation: voicePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.micBtnEdit {
+  opacity: 0.6;
+}
+
+.recordingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  margin-top: 0.3rem;
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  flex-shrink: 0;
+  animation: voicePulse 1.5s ease-in-out infinite;
+}
+
+.recordingText {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.recordingTranscript {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.voiceOverlay {
+  background: var(--warm-white);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  margin-top: 0.4rem;
+  box-shadow: var(--shadow-md);
+}
+
+.voiceTranscript {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0 0 0.5rem;
+  font-style: italic;
+}
+
+.voiceActions {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.voiceInsertBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.voiceInsertBtn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.voiceRefineBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.voiceRefineBtn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.voiceRefineBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voiceDismissBtn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  background: none;
+  border: none;
   color: var(--text-muted);
   cursor: pointer;
 }
 
-.cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
+.voiceDismissBtn:hover {
+  color: var(--text-primary);
 }

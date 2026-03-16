@@ -6,95 +6,25 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Map, { Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
-import type { MapRef } from 'react-map-gl/mapbox';
-import type { MapLayerMouseEvent } from 'mapbox-gl';
+import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Building2, Camera, ClipboardCheck, BarChart3, Eye, Footprints, MapPin as MapPinIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { getAllPins, getRecentActivity, getWalkRoutes } from '../services/api';
 import { colours } from '../theme';
 import { LayerControl } from '../components/map/LayerControl';
 import { DEFAULT_LAYERS, type SpatialLayer } from '../components/map/layerConstants';
 import { MapLegend } from '../components/map/MapLegend';
+import { ActivityPanel, PIN_COLOURS, FEATURE_ROUTES, FEATURE_LABELS } from '../components/map/ActivityPanel';
 import { fetchDAsInBounds, type DA } from '../services/daService';
-import { MeasureTools, type MeasureMode } from '../components/map/MeasureTools';
+import { MeasureTools } from '../components/map/MeasureTools';
+import { useMapMeasure } from '../hooks/useMapMeasure';
 import { fetchTrainStationsInBounds, fetchAllRailwayLines, type TrainStation } from '../services/trainStationService';
 import type { MapPin, ActivityItem, FeatureType } from '../types/common';
 import styles from './Dashboard.module.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '';
 
-const PIN_COLOURS: Record<FeatureType, string> = {
-  snap: colours.terracotta,
-  inspect: '#3B82F6',
-  appraise: colours.amber,
-  monitor: colours.copper,
-  explore: colours.sageBright,
-};
-
-const FEATURE_ROUTES: Record<FeatureType, string> = {
-  snap: '/app/snaps',
-  inspect: '/app/inspections',
-  appraise: '/app/appraisals',
-  monitor: '/app/monitor',
-  explore: '/app/walks',
-};
-
-const FEATURE_LABELS: Record<FeatureType, string> = {
-  snap: 'Snap',
-  inspect: 'Inspection',
-  appraise: 'Appraisal',
-  monitor: 'Monitor',
-  explore: 'Walk',
-};
-
 const BUILDINGS_LAYER_ID = 'gt-3d-buildings';
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' });
-}
-
-interface PropertyGroup {
-  key: string;
-  address: string;
-  suburb: string;
-  lastDate: string;
-  counts: Record<FeatureType, number>;
-  items: ActivityItem[];
-  latitude: number | null;
-  longitude: number | null;
-}
-
-function groupByProperty(items: ActivityItem[], pins: MapPin[]): PropertyGroup[] {
-  const groups: Record<string, PropertyGroup> = {};
-
-  for (const item of items) {
-    const key = item.address.toLowerCase().trim();
-    const existing = groups[key];
-
-    if (existing) {
-      existing.counts[item.type] = (existing.counts[item.type] ?? 0) + 1;
-      existing.items.push(item);
-      if (item.createdAt > existing.lastDate) existing.lastDate = item.createdAt;
-    } else {
-      const counts: Record<FeatureType, number> = { snap: 0, inspect: 0, appraise: 0, monitor: 0, explore: 0 };
-      counts[item.type] = 1;
-      // Find coordinates from pins
-      const pin = pins.find((p) => p.address.toLowerCase().trim() === key);
-      groups[key] = {
-        key,
-        address: item.address,
-        suburb: item.suburb,
-        lastDate: item.createdAt,
-        counts,
-        items: [item],
-        latitude: pin?.latitude ?? null,
-        longitude: pin?.longitude ?? null,
-      };
-    }
-  }
-
-  return Object.values(groups).sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
-}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -107,10 +37,20 @@ export default function DashboardPage() {
   const [spatialLayers, setSpatialLayers] = useState<SpatialLayer[]>(DEFAULT_LAYERS);
   const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null);
   const [expandedProperty, setExpandedProperty] = useState<string | null>(null);
-  const [measureMode, setMeasureMode] = useState<MeasureMode>('none');
-  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
-  const [cursorPos, setCursorPos] = useState<[number, number] | null>(null);
-  const [measureFinished, setMeasureFinished] = useState(false);
+  const measure = useMapMeasure();
+  const {
+    measureMode,
+    measureDistance,
+    measureArea,
+    measureGeoJson,
+    measurePointsGeoJson,
+    measureLabelsGeoJson,
+    setMeasureModeAndReset,
+    setCursorPos,
+    addMeasurePoint,
+    clearMeasure: handleClearMeasure,
+    isMeasuring,
+  } = measure;
   const [daPoints, setDaPoints] = useState<DA[]>([]);
   const [trainStations, setTrainStations] = useState<TrainStation[]>([]);
   const [railwayGeoJson, setRailwayGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
@@ -140,7 +80,7 @@ export default function DashboardPage() {
     daDebounceRef.current = setTimeout(() => {
       void fetchDAsInBounds(mapBounds.west, mapBounds.south, mapBounds.east, mapBounds.north).then((das) => {
         setDaPoints(das);
-      });
+      }).catch((err: unknown) => console.error('Failed to fetch DAs:', err));
     }, 500);
     return () => { if (daDebounceRef.current) clearTimeout(daDebounceRef.current); };
   }, [isDaLayerActive, mapBounds, isDaZoomedIn]);
@@ -157,7 +97,7 @@ export default function DashboardPage() {
     stationsDebounceRef.current = setTimeout(() => {
       void fetchTrainStationsInBounds(mapBounds.west, mapBounds.south, mapBounds.east, mapBounds.north).then((s) => {
         setTrainStations(s);
-      });
+      }).catch((err: unknown) => console.error('Failed to fetch train stations:', err));
     }, 400);
     return () => { if (stationsDebounceRef.current) clearTimeout(stationsDebounceRef.current); };
   }, [isStationsLayerActive, mapBounds]);
@@ -167,7 +107,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isRailwayLayerActive) return;
-    void fetchAllRailwayLines().then(setRailwayGeoJson);
+    void fetchAllRailwayLines().then(setRailwayGeoJson).catch((err: unknown) => console.error('Failed to fetch railway lines:', err));
   }, [isRailwayLayerActive]);
 
   const stationsGeoJson: GeoJSON.FeatureCollection = {
@@ -211,19 +151,24 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [p, a, w] = await Promise.all([getAllPins(), getRecentActivity(), getWalkRoutes()]);
-      if (!cancelled) {
-        setPins(p);
-        setActivity(a);
-        setWalkRoutes({
-          type: 'FeatureCollection',
-          features: w.map((walk) => ({
-            type: 'Feature' as const,
-            properties: { id: walk.id, title: walk.title },
-            geometry: { type: 'LineString' as const, coordinates: walk.route },
-          })),
-        });
-        setIsLoading(false);
+      try {
+        const [p, a, w] = await Promise.all([getAllPins(), getRecentActivity(), getWalkRoutes()]);
+        if (!cancelled) {
+          setPins(p);
+          setActivity(a);
+          setWalkRoutes({
+            type: 'FeatureCollection',
+            features: w.map((walk) => ({
+              type: 'Feature' as const,
+              properties: { id: walk.id, title: walk.title },
+              geometry: { type: 'LineString' as const, coordinates: walk.route },
+            })),
+          });
+          setIsLoading(false);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to load dashboard data:', err);
+        if (!cancelled) setIsLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -250,7 +195,7 @@ export default function DashboardPage() {
           type: 'fill-extrusion',
           minzoom: 15,
           paint: {
-            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-color': '#556',
             'fill-extrusion-height': [
               'interpolate', ['linear'], ['zoom'],
               15, 0,
@@ -326,152 +271,32 @@ export default function DashboardPage() {
       'icon-allow-overlap': true,
     },
     paint: {
-      'text-color': '#FFFFFF',
+      'text-color': '#FAF8F5',
+      'text-halo-color': 'rgba(0,0,0,0.7)',
+      'text-halo-width': 1,
     },
   };
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  // Measurement helpers
-  function haversineDist(a: [number, number], b: [number, number]): number {
-    const R = 6371000;
-    const dLat = (b[1] - a[1]) * Math.PI / 180;
-    const dLon = (b[0] - a[0]) * Math.PI / 180;
-    const lat1 = a[1] * Math.PI / 180;
-    const lat2 = b[1] * Math.PI / 180;
-    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  function handlePinClick(e: MapMouseEvent): void {
+    type MapClickEvent = MapMouseEvent & { features?: Array<{ properties?: Record<string, unknown> }> };
+    const feature = (e as MapClickEvent).features?.[0];
+    if (!feature?.properties) return;
+    const fType = feature.properties['featureType'];
+    const fId = feature.properties['id'];
+    if (typeof fType === 'string' && typeof fId === 'string' && fType in FEATURE_ROUTES) {
+      const route = FEATURE_ROUTES[fType as FeatureType];
+      navigate(`${route}/${fId}`);
+    }
   }
 
-  function fmtDist(m: number): string {
-    if (m < 1000) return `${Math.round(m)} m`;
-    return `${(m / 1000).toFixed(2)} km`;
-  }
-
-  function fmtArea(sqm: number): string {
-    if (sqm < 10_000) return `${Math.round(sqm).toLocaleString()} m\u00B2`;
-    return `${(sqm / 10_000).toFixed(2)} ha`;
-  }
-
-  // Include cursor for live preview line (not when finished)
-  const livePoints = cursorPos && measureMode !== 'none' && !measureFinished && measurePoints.length > 0
-    ? [...measurePoints, cursorPos]
-    : measurePoints;
-
-  // Per-segment distances
-  const segmentLabels: GeoJSON.Feature[] = [];
-  const allSegs = measureMode === 'polygon' && livePoints.length >= 3
-    ? [...livePoints, livePoints[0]!]
-    : livePoints;
-
-  let totalDist = 0;
-  for (let i = 1; i < allSegs.length; i++) {
-    const a = allSegs[i - 1]!;
-    const b = allSegs[i]!;
-    const d = haversineDist(a, b);
-    totalDist += d;
-    segmentLabels.push({
-      type: 'Feature',
-      properties: { label: fmtDist(d) },
-      geometry: { type: 'Point', coordinates: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] },
-    });
-  }
-
-  const measureDistance = totalDist > 0 ? totalDist : null;
-
-  const measureArea = measureMode === 'polygon' && livePoints.length >= 3
-    ? Math.abs(livePoints.reduce((sum, pt, i) => {
-        const next = livePoints[(i + 1) % livePoints.length]!;
-        return sum + (pt[0] * next[1] - next[0] * pt[1]);
-      }, 0)) / 2 * 111320 * 111320 * Math.cos((livePoints[0]![1]) * Math.PI / 180)
-    : null;
-
-  // Area centroid label
-  if (measureArea && livePoints.length >= 3) {
-    const cx = livePoints.reduce((s, p) => s + p[0], 0) / livePoints.length;
-    const cy = livePoints.reduce((s, p) => s + p[1], 0) / livePoints.length;
-    segmentLabels.push({
-      type: 'Feature',
-      properties: { label: fmtArea(measureArea), isArea: true },
-      geometry: { type: 'Point', coordinates: [cx, cy] },
-    });
-  }
-
-  // GeoJSON for the shape (line or polygon)
-  const measureGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: livePoints.length >= 2 ? [{
-      type: 'Feature',
-      properties: {},
-      geometry: measureMode === 'polygon' && livePoints.length >= 3
-        ? { type: 'Polygon', coordinates: [[...livePoints, livePoints[0]!]] }
-        : { type: 'LineString', coordinates: livePoints },
-    }] : [],
-  };
-
-  // GeoJSON for vertex dots
-  const measurePointsGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: measurePoints.map((pt, i) => ({
-      type: 'Feature' as const,
-      properties: { index: i },
-      geometry: { type: 'Point' as const, coordinates: pt },
-    })),
-  };
-
-  // GeoJSON for segment distance labels
-  const measureLabelsGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: segmentLabels,
-  };
-
-  const lastClickTimeRef = useRef(0);
-
-  function handleMapClick(e: MapLayerMouseEvent) {
-    if (measureMode !== 'none' && !measureFinished) {
-      const now = Date.now();
-      const timeSinceLast = now - lastClickTimeRef.current;
-      lastClickTimeRef.current = now;
-
-      // Double-click detected (< 350ms between clicks)
-      if (timeSinceLast < 350 && measurePoints.length >= 2) {
-        // Remove the point just added by this click
-        setMeasurePoints((prev) => prev.slice(0, -1));
-        setCursorPos(null);
-        setMeasureFinished(true);
-        return;
-      }
-
+  function handleMapClick(e: MapMouseEvent): void {
+    if (isMeasuring) {
       const { lng, lat } = e.lngLat;
-      setMeasurePoints((prev) => [...prev, [lng, lat]]);
+      addMeasurePoint(lng, lat);
       return;
     }
-
-    const feature = e.features?.[0];
-    if (!feature?.properties) return;
-    const fType = feature.properties['featureType'] as FeatureType;
-    const fId = feature.properties['id'] as string;
-    if (fType && fId) navigate(`${FEATURE_ROUTES[fType]}/${fId}`);
-  }
-
-  // Escape to clear measurement
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && measureMode !== 'none') {
-        setMeasurePoints([]);
-        setCursorPos(null);
-        setMeasureFinished(false);
-        setMeasureMode('none');
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [measureMode]);
-
-  function handleClearMeasure() {
-    setMeasurePoints([]);
-    setCursorPos(null);
-    setMeasureFinished(false);
-    setMeasureMode('none');
+    handlePinClick(e);
   }
 
   return (
@@ -488,9 +313,10 @@ export default function DashboardPage() {
           }}
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/dark-v11"
+          projection="mercator"
           interactiveLayerIds={['gt-pins-circle']}
           onClick={handleMapClick}
-          cursor={measureMode !== 'none' && !measureFinished ? 'crosshair' : 'pointer'}
+          cursor={isMeasuring ? 'crosshair' : 'pointer'}
           onMouseMove={(e) => {
             if (measureMode !== 'none') setCursorPos([e.lngLat.lng, e.lngLat.lat]);
           }}
@@ -502,8 +328,8 @@ export default function DashboardPage() {
         >
           <NavigationControl position="top-right" />
 
-          {/* ArcGIS spatial layers as raster tiles */}
-          {spatialLayers.filter((l) => l.visible && l.tileUrl).map((layer) => (
+          {/* ArcGIS spatial layers — sorted by zIndex so imagery is always on bottom */}
+          {[...spatialLayers].filter((l) => l.visible && l.tileUrl).sort((a, b) => a.zIndex - b.zIndex).map((layer) => (
             <Source
               key={layer.id}
               id={`arcgis-${layer.id}`}
@@ -578,7 +404,7 @@ export default function DashboardPage() {
                   'text-allow-overlap': false,
                 }}
                 paint={{
-                  'text-color': '#FFFFFF',
+                  'text-color': '#FAF8F5',
                   'text-halo-color': 'rgba(0,0,0,0.7)',
                   'text-halo-width': 1,
                 }}
@@ -596,11 +422,11 @@ export default function DashboardPage() {
                   'circle-radius': 4,
                   'circle-color': [
                     'match', ['get', 'status'],
-                    'Approved', '#65A30D',
-                    'Determined', '#65A30D',
+                    'Approved', '#8B9080',
+                    'Determined', '#8B9080',
                     'Refused', '#DC2626',
-                    'Under Assessment', '#D97706',
-                    'Pending', '#D97706',
+                    'Under Assessment', '#B0A08A',
+                    'Pending', '#B0A08A',
                     'On Exhibition', '#3B82F6',
                     '#78716C',
                   ],
@@ -622,8 +448,8 @@ export default function DashboardPage() {
                   'text-allow-overlap': false,
                 }}
                 paint={{
-                  'text-color': '#FFFFFF',
-                  'text-halo-color': 'rgba(0,0,0,0.6)',
+                  'text-color': '#FAF8F5',
+                  'text-halo-color': 'rgba(0,0,0,0.7)',
                   'text-halo-width': 0.8,
                   'text-opacity': spatialLayers.find((l) => l.id === 'das')?.opacity ?? 0.7,
                 }}
@@ -670,8 +496,8 @@ export default function DashboardPage() {
                   'text-ignore-placement': true,
                 }}
                 paint={{
-                  'text-color': '#FFFFFF',
-                  'text-halo-color': 'rgba(0,0,0,0.8)',
+                  'text-color': '#FAF8F5',
+                  'text-halo-color': 'rgba(0,0,0,0.7)',
                   'text-halo-width': 1.5,
                 }}
               />
@@ -703,7 +529,7 @@ export default function DashboardPage() {
         {/* Measure tools */}
         <MeasureTools
           mode={measureMode}
-          onModeChange={(m) => { setMeasureMode(m); setMeasurePoints([]); setCursorPos(null); setMeasureFinished(false); }}
+          onModeChange={setMeasureModeAndReset}
           distance={measureDistance}
           area={measureArea}
           onClear={handleClearMeasure}
@@ -729,106 +555,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Activity feed sidebar — grouped by property */}
-      <aside className={styles.activityPanel}>
-        <h2 className={styles.activityTitle}>Properties</h2>
-
-        {isLoading ? (
-          <p className={styles.emptyText}>Loading...</p>
-        ) : activity.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyText}>No activity yet</p>
-            <p className={styles.emptyHint}>Complete a snap or inspection on the iOS app to see it here.</p>
-          </div>
-        ) : (
-          <div className={styles.activityList}>
-            {groupByProperty(activity, pins).map((group) => {
-              const isExpanded = expandedProperty === group.key;
-
-              function handlePropertyClick() {
-                // Toggle expand
-                setExpandedProperty(isExpanded ? null : group.key);
-                // Zoom to property
-                if (group.latitude && group.longitude && mapRef.current) {
-                  mapRef.current.flyTo({
-                    center: [group.longitude, group.latitude],
-                    zoom: 17,
-                    duration: 1200,
-                  });
-                }
-              }
-
-              return (
-                <div key={group.key} className={`${styles.propertyGroup} ${isExpanded ? styles.propertyGroupExpanded : ''}`}>
-                  <button className={styles.activityCard} onClick={handlePropertyClick}>
-                    <span className={styles.expandChevron}>
-                      {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                    </span>
-                    <div className={styles.propertyInfo}>
-                      <div className={styles.propertyAddressRow}>
-                        <MapPinIcon size={13} className={styles.propertyIcon} />
-                        <span className={styles.activityAddress}>{group.address}</span>
-                      </div>
-                      <span className={styles.propertySub}>{group.suburb}</span>
-                      <div className={styles.featureBadges}>
-                        {group.counts.snap > 0 && (
-                          <span className={styles.featureBadge} style={{ color: PIN_COLOURS.snap }}>
-                            <Camera size={11} /> {group.counts.snap}
-                          </span>
-                        )}
-                        {group.counts.inspect > 0 && (
-                          <span className={styles.featureBadge} style={{ color: PIN_COLOURS.inspect }}>
-                            <ClipboardCheck size={11} /> {group.counts.inspect}
-                          </span>
-                        )}
-                        {group.counts.appraise > 0 && (
-                          <span className={styles.featureBadge} style={{ color: PIN_COLOURS.appraise }}>
-                            <BarChart3 size={11} /> {group.counts.appraise}
-                          </span>
-                        )}
-                        {group.counts.monitor > 0 && (
-                          <span className={styles.featureBadge} style={{ color: PIN_COLOURS.monitor }}>
-                            <Eye size={11} /> {group.counts.monitor}
-                          </span>
-                        )}
-                        {group.counts.explore > 0 && (
-                          <span className={styles.featureBadge} style={{ color: PIN_COLOURS.explore }}>
-                            <Footprints size={11} /> {group.counts.explore}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className={styles.activityDate}>{formatDate(group.lastDate)}</span>
-                  </button>
-
-                  {isExpanded && (
-                    <div className={styles.propertyItems}>
-                      {group.items.map((item) => (
-                        <button
-                          key={`${item.type}-${item.id}`}
-                          className={styles.propertyItem}
-                          onClick={() => navigate(`${FEATURE_ROUTES[item.type]}/${item.id}`)}
-                        >
-                          <span className={styles.propertyItemDot} style={{ backgroundColor: PIN_COLOURS[item.type] }} />
-                          <span className={styles.propertyItemType}>{FEATURE_LABELS[item.type]}</span>
-                          <span className={styles.propertyItemSummary}>{item.summary}</span>
-                          <span className={styles.propertyItemDate}>{formatDate(item.createdAt)}</span>
-                        </button>
-                      ))}
-                      <button
-                        className={styles.viewAllButton}
-                        onClick={() => navigate(`/app/properties/${encodeURIComponent(group.key)}`)}
-                      >
-                        View all records
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </aside>
+      <ActivityPanel
+        activity={activity}
+        pins={pins}
+        isLoading={isLoading}
+        expandedProperty={expandedProperty}
+        onExpandProperty={setExpandedProperty}
+        onFlyTo={(lng, lat) => {
+          mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+        }}
+      />
     </div>
   );
 }

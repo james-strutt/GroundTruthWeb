@@ -198,7 +198,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.08);
   border: 1.5px solid rgba(232,226,217,0.25);
   display: flex;
   align-items: center;
@@ -224,7 +224,7 @@
 }
 
 .lastPhoto {
-  background: rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.04);
   border-radius: 7px;
   padding: 6px;
   display: flex;
@@ -249,7 +249,7 @@
 }
 
 .aiScore {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-data);
   color: #e8a87c;
   font-weight: 600;
 }

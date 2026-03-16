@@ -17,13 +17,53 @@
   --terracotta-dark: #B5472A;
   --terracotta-light: #FFF7ED;
   --sage: #3F6212;
-  --sage-bright: #65A30D;
+  --sage-bright: #8B9080;
   --sage-light: #F7FEE7;
-  --amber: #D97706;
+  --amber: #B0A08A;
   --amber-light: #FFFBEB;
   --brick: #991B1B;
   --brick-light: #FEF2F2;
   --topo-line: rgba(168,162,158,0.18);
+
+  /* Semantic aliases */
+  --accent: #D4653B;
+  --bg-primary: #121110;
+
+  /* Diff colours */
+  --diff-old-bg: rgba(153, 27, 27, 0.08);
+  --diff-new-bg: rgba(63, 98, 18, 0.08);
+  --diff-old-text: #991B1B;
+  --diff-new-text: #3F6212;
+
+  /* Status colours */
+  --status-success: #3F6212;
+  --status-error: #991B1B;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  /* Spacing */
+  --space-xs: 0.35rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.25rem;
+  --space-2xl: 1.5rem;
+  --space-3xl: 2rem;
+
+  /* Borders */
+  --border-light: 1px solid rgba(0, 0, 0, 0.06);
+  --border-standard: 1px solid rgba(0, 0, 0, 0.08);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Font families */
+  --font-brand: 'DM Serif Display', serif;
+  --font-body: 'Public Sans', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', monospace;
 
   /* Dark theme */
   --page-bg: #121110;
@@ -44,7 +84,7 @@ html {
 }
 
 body {
-  font-family: 'Public Sans', system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--page-bg);
   color: var(--text-secondary);
   line-height: 1.6;

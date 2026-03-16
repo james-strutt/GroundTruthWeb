@@ -13,7 +13,7 @@
 }
 
 .address {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-brand);
   font-size: 13px;
   color: #e8e2d9;
   font-weight: 400;

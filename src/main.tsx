@@ -8,6 +8,8 @@ import { AppLayout } from './components/layout/AppLayout';
 import App from './App';
 import LoginPage from './pages/Login';
 import DashboardPage from './pages/Dashboard';
+import DirectoryListPage from './pages/directories/DirectoryList';
+import DirectoryDetailPage from './pages/directories/DirectoryDetail';
 import SnapListPage from './pages/snaps/SnapList';
 import SnapDetailPage from './pages/snaps/SnapDetail';
 import InspectionListPage from './pages/inspections/InspectionList';
@@ -40,6 +42,9 @@ createRoot(document.getElementById('root')!).render(
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route path="directories" element={<DirectoryListPage />} />
+            <Route path="directories/:id" element={<DirectoryDetailPage />} />
+            <Route path="directories/:dirId/properties/:propId" element={<PropertyDetailPage />} />
             <Route path="properties" element={<PropertyListPage />} />
             <Route path="properties/:address" element={<PropertyDetailPage />} />
             <Route path="snaps" element={<SnapListPage />} />

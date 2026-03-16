@@ -4,17 +4,17 @@
   gap: 0.75rem;
   padding: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(212, 101, 59, 0.25);
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: border-color 0.15s;
   text-align: left;
   width: 100%;
   color: inherit;
 }
 
 .card:hover {
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(212, 101, 59, 0.5);
 }
 
 .thumbnail {
@@ -61,7 +61,7 @@
 }
 
 .star {
-  color: #D97706;
+  color: var(--amber);
   font-size: 1rem;
 }
 

@@ -3,11 +3,13 @@
  * with activity counts per feature type.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building, Camera, ClipboardCheck, BarChart3, Eye, MapPin, Calendar } from 'lucide-react';
 import { listProperties } from '../../services/api';
 import { PageHeader } from '../../components/shared/PageHeader';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { GroupedProperty } from '../../types/common';
 import styles from './PropertyList.module.css';
 
@@ -21,16 +23,32 @@ export default function PropertyListPage() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<GroupedProperty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProperties = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await listProperties();
+      setProperties(d);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load properties');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    void listProperties().then((d) => { setProperties(d); setLoading(false); });
-  }, []);
+    void fetchProperties();
+  }, [fetchProperties]);
 
   return (
     <div>
       <PageHeader icon={<Building size={22} />} title="Properties" count={properties.length} />
       {loading ? (
-        <p className={styles.empty}>Loading...</p>
+        <LoadingSpinner message="Loading properties..." />
+      ) : error ? (
+        <ErrorMessage message={error} onRetry={() => { setError(null); void fetchProperties(); }} />
       ) : properties.length === 0 ? (
         <p className={styles.empty}>No properties yet. Capture data on the iOS app and sync to cloud.</p>
       ) : (
@@ -69,7 +87,7 @@ export default function PropertyListPage() {
                     </span>
                   )}
                   {p.appraisalCount > 0 && (
-                    <span className={styles.badge} style={{ color: '#D97706' }}>
+                    <span className={styles.badge} style={{ color: '#B0A08A' }}>
                       <BarChart3 size={12} /> {p.appraisalCount}
                     </span>
                   )}

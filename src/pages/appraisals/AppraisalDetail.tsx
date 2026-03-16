@@ -5,6 +5,10 @@ import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/mapb
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getAppraisal, deleteAppraisal } from '../../services/api';
 import { computeWalkingRoute, type WalkingRouteResult } from '../../services/walkingRoute';
+import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
+import { ConfirmModal } from '../../components/shared/ConfirmModal';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { colours } from '../../theme';
 import type { Appraisal, ScoredComp } from '../../types/common';
 import styles from './AppraisalDetail.module.css';
@@ -39,22 +43,33 @@ export default function AppraisalDetailPage() {
   const navigate = useNavigate();
   const [record, setRecord] = useState<Appraisal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [inspectedComp, setInspectedComp] = useState<ScoredComp | null>(null);
   const [walkRoute, setWalkRoute] = useState<WalkingRouteResult | null>(null);
 
-  useEffect(() => {
+  const fetchAppraisal = useCallback(async () => {
     if (!id) return;
-    void getAppraisal(id).then((d) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await getAppraisal(id);
       setRecord(d);
-      setLoading(false);
-      // Pre-select manually selected comps
       if (d) {
         const preSelected: Set<string> = new Set(d.scoredComps.filter((c) => c.isManuallySelected).map((c) => c.id));
         setSelectedIds(preSelected);
       }
-    });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load appraisal');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void fetchAppraisal();
+  }, [fetchAppraisal]);
 
   const toggleSelection = useCallback((compId: string) => {
     setSelectedIds((prev) => {
@@ -85,8 +100,9 @@ export default function AppraisalDetailPage() {
     return () => { cancelled = true; };
   }, [record, selectedIds]);
 
-  if (loading) return <p className={styles.loading}>Loading...</p>;
-  if (!record) return <p className={styles.loading}>Appraisal not found.</p>;
+  if (loading) return <LoadingSpinner message="Loading appraisal..." />;
+  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchAppraisal(); }} />;
+  if (!record) return <ErrorMessage type="notFound" message="Appraisal not found" />;
 
   const est = record.priceEstimate;
   const mappableComps = record.scoredComps.filter((c) => c.latitude != null && c.longitude != null);
@@ -107,14 +123,29 @@ export default function AppraisalDetailPage() {
 
   return (
     <div className={styles.page}>
+      <Breadcrumb segments={[{ label: 'Dashboard', path: '/app' }, { label: 'Appraisals', path: '/app/appraisals' }, { label: record.address }]} />
       <div className={styles.topBar}>
         <button className={styles.backButton} onClick={() => navigate('/app/appraisals')}>
           <ArrowLeft size={18} /> Back to Appraisals
         </button>
-        <button className={styles.deleteButton} onClick={async () => { if (window.confirm('Delete this appraisal?')) { await deleteAppraisal(record.id); navigate('/app/appraisals'); } }}>
+        <button className={styles.deleteButton} onClick={() => setShowDeleteConfirm(true)}>
           <Trash2 size={14} /> Delete
         </button>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Appraisal"
+          message="Delete this appraisal? This cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={async () => {
+            await deleteAppraisal(record.id);
+            navigate('/app/appraisals');
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       <div className={styles.header}>
         <div className={styles.headerInfo}>
@@ -252,6 +283,104 @@ export default function AppraisalDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Price estimate details */}
+      {est && (
+        <div className={styles.estimateSection}>
+          <div className={styles.estimateCard}>
+            <h2 className={styles.estimateCardTitle}>Price Estimate</h2>
+            <div className={styles.estimateHero}>
+              <span className={styles.estimateHeroValue}>{formatCompact(est.estimatedValue)}</span>
+              {est.rangeLow > 0 && est.rangeHigh > 0 && (
+                <span className={styles.estimateRange}>{formatCompact(est.rangeLow)} &ndash; {formatCompact(est.rangeHigh)}</span>
+              )}
+            </div>
+            <div className={styles.estimateGrid}>
+              {est.ratePerSqm > 0 && (
+                <div className={styles.estimateItem}>
+                  <span className={styles.estimateItemLabel}>Rate</span>
+                  <span className={styles.estimateItemValue}>${Math.round(est.ratePerSqm)}/m&sup2;</span>
+                </div>
+              )}
+              <div className={styles.estimateItem}>
+                <span className={styles.estimateItemLabel}>Comps used</span>
+                <span className={styles.estimateItemValue}>{est.comparablesUsed} of {est.comparablesAvailable}</span>
+              </div>
+              {est.generatedAt && (
+                <div className={styles.estimateItem}>
+                  <span className={styles.estimateItemLabel}>Generated</span>
+                  <span className={styles.estimateItemValue}>{formatDate(est.generatedAt)}</span>
+                </div>
+              )}
+            </div>
+            <div className={styles.confidenceBar}>
+              <div className={styles.confidenceFill} style={{ width: `${Math.round(est.confidenceScore * 100)}%` }} />
+            </div>
+            <span className={styles.confidenceLabel}>{est.confidence} confidence ({Math.round(est.confidenceScore * 100)}%)</span>
+          </div>
+
+          {est.methodology && (
+            <div className={styles.estimateCard}>
+              <h2 className={styles.estimateCardTitle}>Methodology</h2>
+              <p className={styles.methodology}>{est.methodology}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selected comps detail */}
+      {selectedIds.size > 0 && (
+        <div className={styles.selectedSection}>
+          <h2 className={styles.selectedTitle}>Shortlisted Comparables ({selectedIds.size})</h2>
+          <div className={styles.selectedGrid}>
+            {record.scoredComps.filter((c) => selectedIds.has(c.id)).map((c) => (
+              <div key={c.id} className={styles.selectedCard}>
+                <span className={styles.selectedCardAddress}>{c.address}</span>
+                <div className={styles.selectedCardGrid}>
+                  <div>
+                    <span className={styles.selectedCardLabel}>Price</span>
+                    <span className={styles.selectedCardValue}>{formatCompact(c.salePrice)}</span>
+                  </div>
+                  {c.adjustedPrice != null && c.adjustedPrice > 0 && (
+                    <div>
+                      <span className={styles.selectedCardLabel}>Adjusted</span>
+                      <span className={styles.selectedCardValue}>{formatCompact(c.adjustedPrice)}</span>
+                    </div>
+                  )}
+                  {c.areaSqm > 0 && (
+                    <div>
+                      <span className={styles.selectedCardLabel}>Area</span>
+                      <span className={styles.selectedCardValue}>{Math.round(c.areaSqm)} m&sup2;</span>
+                    </div>
+                  )}
+                  {c.settlementDate && (
+                    <div>
+                      <span className={styles.selectedCardLabel}>Sold</span>
+                      <span className={styles.selectedCardValue}>{formatDate(c.settlementDate)}</span>
+                    </div>
+                  )}
+                  {c.distanceMetres > 0 && (
+                    <div>
+                      <span className={styles.selectedCardLabel}>Distance</span>
+                      <span className={styles.selectedCardValue}>{formatDistance(c.distanceMetres)}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className={styles.selectedCardLabel}>Score</span>
+                    <span className={styles.selectedCardValue}>{c.score.overallScore}</span>
+                  </div>
+                </div>
+                {c.adjustmentDirection && (
+                  <span className={styles.adjustBadge}>
+                    <AdjustIcon dir={c.adjustmentDirection} />
+                    {c.adjustmentDirection}{c.adjustmentPercent != null ? ` ${c.adjustmentPercent > 0 ? '+' : ''}${c.adjustmentPercent}%` : ''}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

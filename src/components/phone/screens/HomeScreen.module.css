@@ -98,7 +98,7 @@
   background: var(--sage-bright);
   border: 2.5px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 6px rgba(101,163,13,0.4), 0 0 0 0 rgba(101,163,13,0.2);
+  box-shadow: 0 1px 6px rgba(139,144,128,0.4), 0 0 0 0 rgba(139,144,128,0.2);
   position: relative;
   z-index: 3;
 }
@@ -112,7 +112,7 @@
   height: 14px;
   margin: -7px 0 0 -7px;
   border-radius: 50%;
-  background: rgba(101,163,13,0.3);
+  background: rgba(139,144,128,0.3);
   z-index: 1;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .title {
-  font-family: 'DM Serif Display', serif;
+  font-family: var(--font-brand);
   font-size: 16px;
   font-weight: 400;
   color: var(--charcoal);

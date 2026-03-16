@@ -1,6 +1,6 @@
 .container {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(194, 65, 12, 0.2);
+  border: 1px solid rgba(212, 101, 59, 0.25);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -10,8 +10,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  background: rgba(194, 65, 12, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(212, 101, 59, 0.2);
 }
 
 .title {
@@ -24,8 +24,8 @@
 .changeCount {
   font-family: var(--font-data);
   font-size: 0.6875rem;
-  color: #D4653B;
-  background: rgba(194, 65, 12, 0.12);
+  color: var(--terracotta);
+  background: rgba(212, 101, 59, 0.12);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
@@ -56,21 +56,23 @@
 }
 
 .acceptAllBtn {
-  background: rgba(101, 163, 13, 0.15);
-  color: #65A30D;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
 }
 
 .acceptAllBtn:hover {
-  background: rgba(101, 163, 13, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
 .rejectAllBtn {
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
 }
 
 .rejectAllBtn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
 }
 
 .fields {
@@ -80,7 +82,7 @@
 
 .field {
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(212, 101, 59, 0.1);
 }
 
 .field:last-child {
@@ -113,18 +115,25 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  user-select: text;
 }
 
 .oldValue {
-  background: rgba(239, 68, 68, 0.06);
-  color: var(--text-secondary);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: rgba(153, 27, 27, 0.12);
+  color: #f0a0a0;
+  border: 1px solid rgba(153, 27, 27, 0.35);
 }
 
 .newValue {
-  background: rgba(101, 163, 13, 0.06);
-  color: var(--text-primary);
-  border: 1px solid rgba(101, 163, 13, 0.15);
+  background: rgba(63, 98, 18, 0.12);
+  color: #b0d880;
+  border: 1px solid rgba(63, 98, 18, 0.35);
+}
+
+.newValueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .diffTag {
@@ -133,7 +142,27 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.6;
+  opacity: 0.5;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copyBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
 }
 
 .fieldActions {
@@ -141,7 +170,7 @@
   gap: 0.3rem;
 }
 
-.acceptBtn, .rejectBtn {
+.acceptBtn, .editBtn, .rejectBtn {
   display: flex;
   align-items: center;
   gap: 0.2rem;
@@ -152,28 +181,107 @@
   font-weight: 500;
   cursor: pointer;
   border: none;
+  transition: background 0.15s;
 }
 
 .acceptBtn {
-  background: rgba(101, 163, 13, 0.12);
-  color: #65A30D;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
 }
 
 .acceptBtn:hover {
-  background: rgba(101, 163, 13, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.editBtn {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+}
+
+.editBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
 }
 
 .rejectBtn {
-  background: rgba(239, 68, 68, 0.08);
-  color: #EF4444;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
 }
 
 .rejectBtn:hover {
-  background: rgba(239, 68, 68, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
 }
 
-@media (max-width: 640px) {
-  .diffRow {
+/* ---- Edit mode ---- */
+
+.editMode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.editRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 101, 59, 0.25);
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  min-height: 60px;
+  transition: border-color 0.15s;
+}
+
+.editTextarea:focus {
+  border-color: var(--terracotta);
+}
+
+.referencePane {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  background: rgba(63, 98, 18, 0.08);
+  border: 1px dashed rgba(63, 98, 18, 0.3);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.referencePaneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.referenceText {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  user-select: text;
+}
+
+@media (max-width: 768px) {
+  .diffRow, .editRow {
     flex-direction: column;
   }
 }

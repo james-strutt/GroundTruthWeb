@@ -4,6 +4,7 @@ import { listInspections } from '../../services/api';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { FeatureCard } from '../../components/shared/FeatureCard';
 import { GroupedFeatureList } from '../../components/shared/GroupedFeatureList';
+import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import type { Inspection } from '../../types/common';
 
 export default function InspectionListPage() {
@@ -18,7 +19,7 @@ export default function InspectionListPage() {
     <div>
       <PageHeader icon={<ClipboardCheck size={22} />} title="Inspections" count={items.length} />
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>Loading...</p>
+        <LoadingSpinner message="Loading inspections..." />
       ) : (
         <GroupedFeatureList
           records={items}
