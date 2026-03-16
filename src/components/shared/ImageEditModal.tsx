@@ -16,8 +16,8 @@ interface ImageEditModalProps {
   photoUrl: string;
   /** Called when the modal is dismissed */
   onClose: () => void;
-  /** Called with the edited image data URL when saved */
-  onSave: (editedImageUrl: string) => void;
+  /** Called with the edited image data URL when saved — can be async for upload */
+  onSave: (editedImageUrl: string) => void | Promise<void>;
 }
 
 const PROMPT_SUGGESTIONS = [
@@ -38,6 +38,7 @@ export function ImageEditModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,6 +48,7 @@ export function ImageEditModal({
       setEditedImageUrl(null);
       setError(null);
       setIsGenerating(false);
+      setIsSaving(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [visible]);
@@ -84,10 +86,16 @@ export function ImageEditModal({
     }
   }
 
-  function handleSave() {
-    if (editedImageUrl) {
-      onSave(editedImageUrl);
+  async function handleSave() {
+    if (!editedImageUrl) return;
+    setIsSaving(true);
+    try {
+      await onSave(editedImageUrl);
       onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save image');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -191,8 +199,8 @@ export function ImageEditModal({
               >
                 Try Again
               </button>
-              <button className={styles.primaryButton} onClick={handleSave}>
-                Save Image
+              <button className={styles.primaryButton} onClick={() => void handleSave()} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Image'}
               </button>
             </>
           ) : (

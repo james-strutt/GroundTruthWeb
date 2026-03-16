@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, AlertTriangle, Trash2, X, RefreshCw, Sparkles } from 'lucide-react';
-import { getInspection, updateInspectionReportField, updateInspectionPhotoAnalysis, deleteInspection, deleteInspectionPhoto } from '../../services/api';
+import { getInspection, updateInspectionReportField, updateInspectionPhotoAnalysis, uploadEditedImage, deleteInspection, deleteInspectionPhoto } from '../../services/api';
 import { reanalyseInspectionPhoto } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
@@ -50,6 +50,14 @@ export default function InspectionDetailPage() {
     try {
       const d = await getInspection(id);
       setRecord(d);
+      if (d) {
+        const restored: Record<number, string> = {};
+        d.photos.forEach((p, i) => {
+          const url = (p.analysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
+          if (typeof url === 'string') restored[i] = url;
+        });
+        if (Object.keys(restored).length > 0) setAiEditedImages(restored);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load inspection');
     } finally {
@@ -515,11 +523,12 @@ export default function InspectionDetailPage() {
           visible={aiEditPhotoUri !== null}
           photoUrl={aiEditPhotoUri}
           onClose={() => setAiEditPhotoUri(null)}
-          onSave={(editedUrl) => {
+          onSave={async (editedDataUrl) => {
             const idx = record.photos.findIndex((p) => p.uri === aiEditPhotoUri);
-            if (idx >= 0) {
-              setAiEditedImages((prev) => ({ ...prev, [idx]: editedUrl }));
-            }
+            if (idx < 0) return;
+            const publicUrl = await uploadEditedImage(editedDataUrl, 'inspections', record.id);
+            await updateInspectionPhotoAnalysis(record.id, idx, 'aiEditedPhotoUrl', publicUrl);
+            setAiEditedImages((prev) => ({ ...prev, [idx]: publicUrl }));
           }}
         />
       )}

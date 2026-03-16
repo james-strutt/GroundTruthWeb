@@ -25,6 +25,7 @@ export function EditableText({ value, onSave, multiline = false, placeholder, cl
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
   // Voice state
@@ -61,12 +62,14 @@ export function EditableText({ value, onSave, multiline = false, placeholder, cl
       return;
     }
     setSaving(true);
+    setSaveError(null);
     try {
       await onSave(trimmed);
       setIsEditing(false);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setSaveError(msg);
       setDraft(value);
-      setIsEditing(false);
     } finally {
       setSaving(false);
     }
@@ -237,6 +240,7 @@ export function EditableText({ value, onSave, multiline = false, placeholder, cl
             <X size={14} />
           </button>
           {micButton}
+          {saveError && <span className={styles.saveError}>{saveError}</span>}
         </div>
       </div>
     );

@@ -324,6 +324,37 @@ export async function deleteInspectionPhoto(
   return !error;
 }
 
+/* ---------- Image upload (AI edits → Supabase Storage) ---------- */
+
+/** Upload a base64 data URL to Supabase Storage and return the public URL */
+export async function uploadEditedImage(
+  dataUrl: string,
+  folder: string,
+  recordId: string,
+): Promise<string> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match || !match[1] || !match[2]) throw new Error('Invalid data URL');
+  const mimeType = match[1];
+  const base64 = match[2];
+  const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+  const path = `${folder}/${recordId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('ai-edits')
+    .upload(path, bytes, { contentType: mimeType, upsert: true });
+
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+  const { data: urlData } = supabase.storage.from('ai-edits').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
 /* ---------- Updates (inline editing) ---------- */
 
 /** Update a jsonb field within a snap's ai_analysis */
@@ -409,6 +440,23 @@ export async function updateAppraisalEstimateField(
   const estimate = (row.price_estimate ?? {}) as Record<string, unknown>;
   estimate[field] = value;
   const { error } = await supabase.from('appraisals').update({ price_estimate: estimate }).eq('id', id);
+  return !error;
+}
+
+/** Persist comparable-sale selection toggles back to the scored_comps jsonb */
+export async function updateAppraisalCompSelections(
+  id: string,
+  selectedCompIds: string[],
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { data: row } = await supabase.from('appraisals').select('scored_comps').eq('id', id).single();
+  if (!row) return false;
+  const comps = (row.scored_comps ?? []) as Record<string, unknown>[];
+  const selectedSet = new Set(selectedCompIds);
+  for (const comp of comps) {
+    comp['is_manually_selected'] = selectedSet.has(comp['id'] as string);
+  }
+  const { error } = await supabase.from('appraisals').update({ scored_comps: comps }).eq('id', id);
   return !error;
 }
 

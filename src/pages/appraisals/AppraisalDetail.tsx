@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, TrendingUp, TrendingDown, Minus, Trash2, Check, Footprints } from 'lucide-react';
 import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getAppraisal, deleteAppraisal } from '../../services/api';
+import { getAppraisal, deleteAppraisal, updateAppraisalCompSelections } from '../../services/api';
 import { computeWalkingRoute, type WalkingRouteResult } from '../../services/walkingRoute';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
@@ -76,9 +76,12 @@ export default function AppraisalDetailPage() {
       const next = new Set(prev);
       if (next.has(compId)) next.delete(compId);
       else next.add(compId);
+      if (record) {
+        void updateAppraisalCompSelections(record.id, [...next]);
+      }
       return next;
     });
-  }, []);
+  }, [record]);
 
   // Compute walking route when selection changes
   useEffect(() => {

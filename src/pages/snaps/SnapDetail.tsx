@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Shield, Lightbulb, AlertTriangle, Trash2, RefreshCw, Sparkles } from 'lucide-react';
-import { getSnap, updateSnapAnalysisField, deleteSnap } from '../../services/api';
+import { getSnap, updateSnapAnalysisField, uploadEditedImage, deleteSnap } from '../../services/api';
 import { reanalyseSnap } from '../../services/aiService';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
@@ -34,6 +34,8 @@ export default function SnapDetailPage() {
     try {
       const data = await getSnap(id);
       setSnap(data);
+      const persisted = (data?.aiAnalysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
+      if (typeof persisted === 'string') setAiEditedImageUrl(persisted);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load snap');
     } finally {
@@ -299,7 +301,11 @@ export default function SnapDetailPage() {
           visible={showAIEdit}
           photoUrl={snap.photoUrl}
           onClose={() => setShowAIEdit(false)}
-          onSave={(editedUrl) => setAiEditedImageUrl(editedUrl)}
+          onSave={async (editedDataUrl) => {
+            const publicUrl = await uploadEditedImage(editedDataUrl, 'snaps', snap.id);
+            await updateSnapAnalysisField(snap.id, 'aiEditedPhotoUrl', publicUrl);
+            setAiEditedImageUrl(publicUrl);
+          }}
         />
       )}
     </div>

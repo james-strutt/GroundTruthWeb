@@ -209,6 +209,7 @@ interface OverviewTabProps {
 function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabProps) {
   const [notes, setNotes] = useState(property.notes ?? '');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const totalRecords = activities.snaps.length
     + activities.inspections.length
@@ -217,9 +218,13 @@ function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabPro
 
   async function handleSaveNotes() {
     setSaving(true);
+    setSaveError(null);
     try {
-      await updateProperty(property.id, { notes });
+      const ok = await updateProperty(property.id, { notes });
+      if (!ok) throw new Error('Failed to save notes');
       onPropertyUpdated();
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save notes');
     } finally {
       setSaving(false);
     }
@@ -295,6 +300,11 @@ function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabPro
             >
               {saving ? 'Saving...' : 'Save Notes'}
             </button>
+            {saveError && (
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: '#ef4444' }}>
+                {saveError}
+              </span>
+            )}
           </div>
         )}
       </div>
