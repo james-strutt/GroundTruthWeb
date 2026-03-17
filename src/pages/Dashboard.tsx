@@ -353,10 +353,10 @@ export default function DashboardPage() {
                 id="gt-walks-line"
                 type="line"
                 paint={{
-                  'line-color': colours.sageBright,
+                  'line-color': '#66ff66',
                   'line-width': 3,
                   'line-dasharray': [2, 1.5],
-                  'line-opacity': 0.8,
+                  'line-opacity': 0.9,
                 }}
               />
             </Source>
