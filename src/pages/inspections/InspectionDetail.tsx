@@ -138,7 +138,9 @@ export default function InspectionDetailPage() {
           ? value.split('\n').filter((v) => v.trim())
           : key === 'conditionScore'
             ? parseInt(value, 10) || 5
-            : value;
+            : key === 'safetyHazard'
+              ? value === 'true'
+              : value;
 
     void updateInspectionPhotoAnalysis(record.id, photoIdx, key, parsed);
 
