@@ -325,6 +325,32 @@ export default function WalkDetailPage() {
         </div>
       )}
 
+      {/* Walk photos */}
+      {record.photos.length > 0 && (
+        <div className={styles.card} style={{ marginTop: '1rem' }}>
+          <h2 className={styles.cardTitle}>Photos ({record.photos.length})</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem' }}>
+            {record.photos
+              .filter((p) => p.uri.startsWith('http'))
+              .map((photo) => (
+                <a key={photo.id} href={photo.uri} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={photo.uri}
+                    alt={`Walk photo ${photo.id}`}
+                    style={{
+                      width: '100%',
+                      aspectRatio: '4/3',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </a>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* AI narrative */}
       {record.analysisNarrative && (
         <div className={styles.card} style={{ marginTop: '1rem' }}>
