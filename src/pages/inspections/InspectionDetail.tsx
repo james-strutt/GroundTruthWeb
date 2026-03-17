@@ -411,9 +411,9 @@ export default function InspectionDetailPage() {
                               })}
                             </div>
                           )}
-                          {analysis.limitations && analysis.limitations.length > 0 && (
+                          {analysis.limitations && (Array.isArray(analysis.limitations) ? analysis.limitations.length > 0 : !!analysis.limitations) && (
                             <div style={{ fontSize: '0.625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              Limitations: {analysis.limitations.join('; ')}
+                              Limitations: {Array.isArray(analysis.limitations) ? analysis.limitations.join('; ') : String(analysis.limitations)}
                             </div>
                           )}
                           {analysis.furtherInspection && (
