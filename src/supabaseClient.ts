@@ -1,16 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: "pkce",
+        },
+      })
+    : null;
 
 export async function insertWaitlistEmail(email: string) {
   if (!supabase) {
-    console.warn('Supabase not configured');
-    return { error: { code: 'NO_CLIENT', message: 'Supabase not configured' } };
+    console.warn("Supabase not configured");
+    return { error: { code: "NO_CLIENT", message: "Supabase not configured" } };
   }
-  return supabase.from('waitlist').insert({ email });
+  return supabase.from("waitlist").insert({ email });
 }

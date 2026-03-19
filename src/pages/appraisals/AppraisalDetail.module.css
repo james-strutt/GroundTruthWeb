@@ -11,9 +11,9 @@
 .address { font-family: var(--font-brand); font-size: 1.375rem; color: var(--text-primary); margin: 0; }
 .meta { display: flex; align-items: center; gap: 0.35rem; font-family: var(--font-body); font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.2rem; }
 .estimateCompact { display: flex; align-items: baseline; gap: 0.4rem; background: var(--warm-white); border: var(--border-standard); padding: 0.5rem 0.75rem; border-radius: 8px; box-shadow: var(--shadow-sm); }
-.estimateLabel { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-muted); }
+.estimateLabel { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-on-light-muted); }
 .estimateValue { font-family: var(--font-brand); font-size: 1.25rem; color: var(--terracotta); }
-.estimateConf { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-muted); text-transform: capitalize; }
+.estimateConf { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-on-light-muted); text-transform: capitalize; }
 
 /* Map + sidebar */
 .mapLayout { display: flex; gap: 0; height: 500px; border-radius: 10px; overflow: hidden; border: var(--border-standard); box-shadow: var(--shadow-sm); }
@@ -25,68 +25,76 @@
 .compPin:hover { transform: scale(1.3); }
 .compPinSelected { background: var(--terracotta); width: 14px; height: 14px; }
 
-.walkInfo { position: absolute; bottom: 0.6rem; left: 0.6rem; display: flex; align-items: center; gap: 0.35rem; background: rgba(255,253,249,0.9); backdrop-filter: blur(8px); padding: 0.35rem 0.6rem; border-radius: 6px; font-family: var(--font-data); font-size: 0.6875rem; color: var(--text-secondary); border: var(--border-standard); }
-.walkDot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); }
+.walkInfo { position: absolute; bottom: 0.6rem; left: 0.6rem; display: flex; align-items: center; gap: 0.35rem; background: rgba(255,253,249,0.9); backdrop-filter: blur(8px); padding: 0.35rem 0.6rem; border-radius: 6px; font-family: var(--font-data); font-size: 0.6875rem; color: var(--text-on-light-secondary); border: var(--border-standard); }
+.walkDot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-on-light-muted); }
 
 .legend { position: absolute; top: 0.6rem; left: 0.6rem; background: rgba(255,253,249,0.9); backdrop-filter: blur(8px); padding: 0.35rem 0.5rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.2rem; border: var(--border-standard); }
-.legendRow { display: flex; align-items: center; gap: 0.35rem; font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-secondary); }
+.legendRow { display: flex; align-items: center; gap: 0.35rem; font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-on-light-secondary); }
 .subjectPinSmall { width: 8px; height: 8px; border-radius: 50%; background: var(--charcoal); border: 1px solid var(--warm-white); }
 .compPinSmall { width: 8px; height: 8px; border-radius: 50%; background: var(--sage-bright); }
 .compPinSmallSelected { width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); }
 
-/* Comp sidebar */
-.compSidebar { width: 300px; background: var(--warm-white); border-left: var(--border-light); display: flex; flex-direction: column; overflow-y: auto; }
-.sidebarTitle { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; color: var(--text-primary); margin: 0; padding: 0.65rem 0.75rem; border-bottom: var(--border-light); }
+/* Comp sidebar — warm-white panel needs dark text (global tokens are for dark page bg) */
+.compSidebar {
+  width: 300px;
+  background: var(--warm-white);
+  border-left: var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  color: var(--text-on-light-secondary);
+}
+.sidebarTitle { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; color: var(--text-on-light); margin: 0; padding: 0.65rem 0.75rem; border-bottom: var(--border-light); }
 
 .compDetail { padding: 0.65rem 0.75rem; border-bottom: var(--border-light); background: rgba(194,65,12,0.04); }
 .compDetailHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-.compDetailAddress { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; color: var(--text-primary); }
-.closeBtn { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; padding: 0; line-height: 1; }
+.compDetailAddress { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; color: var(--text-on-light); }
+.closeBtn { background: none; border: none; color: var(--text-on-light-muted); font-size: 1.25rem; cursor: pointer; padding: 0; line-height: 1; }
 .compDetailGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; margin-top: 0.4rem; }
-.label { font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; display: block; }
-.value { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-primary); display: block; }
+.label { font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-on-light-muted); text-transform: uppercase; letter-spacing: 0.03em; display: block; }
+.value { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-on-light); display: block; }
 .selectBtn { display: flex; align-items: center; justify-content: center; gap: 0.3rem; width: 100%; margin-top: 0.5rem; padding: 0.35rem; border: 1px solid rgba(194,65,12,0.3); background: none; color: var(--terracotta); font-family: var(--font-body); font-size: 0.75rem; font-weight: 500; border-radius: 5px; cursor: pointer; }
 .selectBtn:hover { background: rgba(194,65,12,0.06); }
 .selectBtnActive { background: var(--terracotta); color: var(--warm-white); border-color: var(--terracotta); }
 
 .compList { flex: 1; overflow-y: auto; }
-.compRow { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem 0.75rem; background: none; border: none; border-bottom: 1px solid rgba(0,0,0,0.04); cursor: pointer; text-align: left; color: inherit; transition: background 0.1s; }
-.compRow:hover { background: rgba(0,0,0,0.03); }
-.compRowSelected { background: rgba(194,65,12,0.05); }
+.compRow { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem 0.75rem; background: none; border: none; border-bottom: 1px solid rgba(0,0,0,0.06); cursor: pointer; text-align: left; color: var(--text-on-light-secondary); transition: background 0.1s; }
+.compRow:hover { background: rgba(0,0,0,0.04); }
+.compRowSelected { background: rgba(194,65,12,0.08); }
 .compRowDot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage-bright); flex-shrink: 0; }
 .compRowDotSelected { background: var(--terracotta); }
 .compRowContent { flex: 1; min-width: 0; }
-.compRowAddress { font-family: var(--font-body); font-size: 0.75rem; color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.compRowMeta { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-muted); }
+.compRowAddress { font-family: var(--font-body); font-size: 0.75rem; color: var(--text-on-light); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compRowMeta { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-on-light-muted); }
 .compRowRight { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
-.compRowScore { font-family: var(--font-data); font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+.compRowScore { font-family: var(--font-data); font-size: 0.75rem; font-weight: 600; color: var(--text-on-light-secondary); }
 
 /* Estimate details */
 .estimateSection { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.25rem; }
-.estimateCard { background: var(--warm-white); border: var(--border-standard); border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow-sm); }
-.estimateCardTitle { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); margin: 0 0 0.75rem; }
+.estimateCard { background: var(--warm-white); border: var(--border-standard); border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow-sm); color: var(--text-on-light-secondary); }
+.estimateCardTitle { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; color: var(--text-on-light); margin: 0 0 0.75rem; }
 .estimateHero { text-align: center; margin-bottom: 1rem; }
-.estimateHeroValue { font-family: var(--font-brand); font-size: 2rem; color: var(--text-primary); display: block; }
-.estimateRange { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem; }
+.estimateHeroValue { font-family: var(--font-brand); font-size: 2rem; color: var(--text-on-light); display: block; }
+.estimateRange { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-on-light-muted); display: block; margin-top: 0.25rem; }
 .estimateGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
 .estimateItem { display: flex; flex-direction: column; gap: 0.1rem; }
-.estimateItemLabel { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
-.estimateItemValue { font-family: var(--font-data); font-size: 0.875rem; color: var(--text-primary); font-weight: 500; }
-.methodology { font-family: var(--font-body); font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; margin: 0; }
-.confidenceBar { height: 4px; background: rgba(0,0,0,0.06); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
+.estimateItemLabel { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-on-light-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.estimateItemValue { font-family: var(--font-data); font-size: 0.875rem; color: var(--text-on-light); font-weight: 500; }
+.methodology { font-family: var(--font-body); font-size: 0.8125rem; color: var(--text-on-light-secondary); line-height: 1.5; margin: 0; }
+.confidenceBar { height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
 .confidenceFill { height: 100%; background: var(--terracotta); border-radius: 2px; opacity: 0.6; }
-.confidenceLabel { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; text-transform: capitalize; }
+.confidenceLabel { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-on-light-muted); margin-top: 0.25rem; text-transform: capitalize; }
 
 /* Selected comps summary */
 .selectedSection { margin-top: 1.25rem; }
 .selectedTitle { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); margin: 0 0 0.75rem; }
 .selectedGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
-.selectedCard { background: var(--warm-white); border: var(--border-standard); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; box-shadow: var(--shadow-sm); }
-.selectedCardAddress { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; color: var(--text-primary); }
+.selectedCard { background: var(--warm-white); border: var(--border-standard); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; box-shadow: var(--shadow-sm); color: var(--text-on-light-secondary); }
+.selectedCardAddress { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; color: var(--text-on-light); }
 .selectedCardGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
-.selectedCardLabel { font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
-.selectedCardValue { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-primary); }
-.adjustBadge { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.2rem; }
+.selectedCardLabel { font-family: var(--font-body); font-size: 0.5625rem; color: var(--text-on-light-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.selectedCardValue { font-family: var(--font-data); font-size: 0.75rem; color: var(--text-on-light); }
+.adjustBadge { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-on-light-muted); display: inline-flex; align-items: center; gap: 0.2rem; }
 
 @media (max-width: 768px) {
   .mapLayout { flex-direction: column; height: auto; }

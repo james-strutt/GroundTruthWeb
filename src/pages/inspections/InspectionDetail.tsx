@@ -101,7 +101,7 @@ export default function InspectionDetailPage() {
     // If there's a report narrative and the first photo produced a narrative, suggest it
     const firstResult = results[cloudPhotos[0]?.index ?? 0];
     if (firstResult && typeof firstResult['narrative'] === 'string' && record.report) {
-      setPendingNarrative(firstResult['narrative'] as string);
+      setPendingNarrative(firstResult['narrative']);
     }
 
     setIsReanalysing(false);
@@ -111,7 +111,7 @@ export default function InspectionDetailPage() {
   async function handleReanalyseSingle(photoIdx: number): Promise<void> {
     if (!record || isReanalysing || reanalysingSingleIdx !== null) return;
     const photo = record.photos[photoIdx];
-    if (!photo || !photo.uri.startsWith('http')) {
+    if (!photo?.uri?.startsWith('http')) {
       alert('This photo is not synced to cloud. Re-sync from the iOS app first.');
       return;
     }
@@ -127,22 +127,15 @@ export default function InspectionDetailPage() {
     }
   }
 
-  function acceptPhotoField(photoIdx: number, key: string, value: string): void {
+  async function acceptPhotoField(photoIdx: number, key: string, value: string): Promise<void> {
     if (!record) return;
 
-    const parsed = key === 'materials'
-      ? value.split('\n').filter((v) => v.trim())
-      : key === 'defects'
-        ? parseDefectsString(value)
-        : key === 'improvements'
-          ? value.split('\n').filter((v) => v.trim())
-          : key === 'conditionScore'
-            ? parseInt(value, 10) || 5
-            : key === 'safetyHazard'
-              ? value === 'true'
-              : value;
+    const parsed = parsePhotoFieldAcceptValue(key, value);
 
-    void updateInspectionPhotoAnalysis(record.id, photoIdx, key, parsed);
+    const saved = await updateInspectionPhotoAnalysis(record.id, photoIdx, key, parsed);
+    if (!saved) {
+      throw new Error('Could not save changes. Check you are signed in and try again.');
+    }
 
     setRecord((prev) => {
       if (!prev) return prev;
@@ -182,12 +175,16 @@ export default function InspectionDetailPage() {
     });
   }
 
-  function acceptAllPhotoFields(photoIdx: number): void {
+  async function acceptAllPhotoFields(photoIdx: number): Promise<void> {
     const pending = pendingPhotoAnalysis[photoIdx];
     if (!pending) return;
-    for (const [key, val] of Object.entries(pending)) {
-      const strVal = stringifyAnalysisValue(val);
-      acceptPhotoField(photoIdx, key, strVal);
+    try {
+      for (const [key, val] of Object.entries(pending)) {
+        const strVal = stringifyAnalysisValue(val);
+        await acceptPhotoField(photoIdx, key, strVal);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed');
     }
   }
 
@@ -284,13 +281,21 @@ export default function InspectionDetailPage() {
             title="AI Re-analysis"
             fields={[{ key: 'narrative', label: 'Report Narrative', oldValue: report.narrative, newValue: pendingNarrative }]}
             onAccept={async (_key, value) => {
-              await updateInspectionReportField(record.id, 'narrative', value);
+              const saved = await updateInspectionReportField(record.id, 'narrative', value);
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev?.report ? { ...prev, report: { ...prev.report, narrative: value } } : prev);
               setPendingNarrative(null);
             }}
             onReject={() => setPendingNarrative(null)}
             onAcceptAll={async () => {
-              await updateInspectionReportField(record.id, 'narrative', pendingNarrative);
+              const saved = await updateInspectionReportField(record.id, 'narrative', pendingNarrative);
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev?.report ? { ...prev, report: { ...prev.report, narrative: pendingNarrative } } : prev);
               setPendingNarrative(null);
             }}
@@ -306,9 +311,11 @@ export default function InspectionDetailPage() {
           {record.photos.map((p, i) => {
             const pending = pendingPhotoAnalysis[i];
             const analysis = p.analysis as PhotoAnalysis | undefined;
+            const safetyHazardLines =
+              analysis?.safetyHazard === true ? safetyHazardExplanationLines(analysis) : [];
 
             return (
-              <div key={i}>
+              <div key={p.id}>
                 <div className={styles.photoCard} style={{ padding: '0', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', gap: '0', alignItems: 'stretch' }}>
                     {/* Photo */}
@@ -316,8 +323,8 @@ export default function InspectionDetailPage() {
                       <ClickableImage src={p.uri} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       {p.tags.length > 0 && (
                         <div style={{ position: 'absolute', bottom: '4px', left: '4px', display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                          {p.tags.map((t, ti) => (
-                            <span key={ti} style={{ background: 'rgba(0,0,0,0.7)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: '#fff' }}>{t.label}</span>
+                          {p.tags.map((t) => (
+                            <span key={t.id} style={{ background: 'rgba(0,0,0,0.7)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: '#fff' }}>{t.label}</span>
                           ))}
                         </div>
                       )}
@@ -367,36 +374,85 @@ export default function InspectionDetailPage() {
                             value={analysis.narrative}
                             multiline
                             onSave={async (v) => {
-                              await updateInspectionPhotoAnalysis(record.id, i, 'narrative', v);
-                              setRecord((prev) => {
-                                if (!prev) return prev;
-                                const photos = prev.photos.map((ph, idx) =>
-                                  idx === i ? { ...ph, analysis: { ...ph.analysis, narrative: v } as unknown as InspectionPhoto['analysis'] } : ph,
-                                );
-                                return { ...prev, photos };
-                              });
+                              const saved = await updateInspectionPhotoAnalysis(record.id, i, 'narrative', v);
+                              if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
+                              setRecord((prev) => replacePhotoNarrativeInInspection(prev, i, v));
                             }}
                             className={styles.summary}
                           />
                           {analysis.materials?.length > 0 && (
                             <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                              {analysis.materials.map((m, mi) => (
-                                <span key={mi} style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}>{m}</span>
+                              {analysis.materials.map((m) => (
+                                <span key={`${p.id}-mat-${m}`} style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.5625rem', fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}>{m}</span>
                               ))}
                             </div>
                           )}
                           {analysis.safetyHazard && (
-                            <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '4px', padding: '0.3rem 0.5rem', fontSize: '0.6875rem', fontFamily: 'var(--font-data)', fontWeight: 600, color: '#ef4444', textTransform: 'uppercase' }}>
-                              Safety Hazard Identified
-                            </div>
+                              <div
+                                role="alert"
+                                style={{
+                                  background: 'rgba(239,68,68,0.15)',
+                                  border: '1px solid rgba(239,68,68,0.4)',
+                                  borderRadius: '4px',
+                                  padding: '0.45rem 0.55rem',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: '0.6875rem',
+                                    fontFamily: 'var(--font-data)',
+                                    fontWeight: 700,
+                                    color: '#ef4444',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em',
+                                  }}
+                                >
+                                  Safety hazard identified
+                                </div>
+                                {safetyHazardLines.length > 0 ? (
+                                  <ul
+                                    style={{
+                                      margin: '0.4rem 0 0',
+                                      paddingLeft: '1.1rem',
+                                      textTransform: 'none',
+                                      fontFamily: 'var(--font-body)',
+                                      fontWeight: 400,
+                                      color: 'var(--text-primary)',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '0.25rem',
+                                    }}
+                                  >
+                                    {safetyHazardLines.map((line) => (
+                                      <li key={`${p.id}-hazard-${line}`} style={{ fontSize: '0.75rem', lineHeight: 1.45 }}>
+                                        {line}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p
+                                    style={{
+                                      margin: '0.35rem 0 0',
+                                      textTransform: 'none',
+                                      fontSize: '0.6875rem',
+                                      fontFamily: 'var(--font-body)',
+                                      fontWeight: 400,
+                                      color: 'var(--text-muted)',
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    The model flagged a safety concern but did not return separate detail lines. Review the narrative above and the defect list below.
+                                  </p>
+                                )}
+                              </div>
                           )}
                           {analysis.defects?.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              {analysis.defects.map((d, di) => {
+                              {analysis.defects.map((d) => {
                                 const severity = d.severity === 'moderate' ? 'minor' : d.severity;
                                 const typeCode = d.defectType ?? '';
                                 return (
-                                  <div key={di} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <div key={`${p.id}-defect-${typeCode}-${severity}-${d.description}`} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                     {typeCode && (
                                       <span style={{ fontSize: '0.5rem', fontFamily: 'var(--font-data)', fontWeight: 700, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', padding: '0 3px', borderRadius: '2px' }}>
                                         {typeCode}
@@ -437,9 +493,13 @@ export default function InspectionDetailPage() {
                     <InlineDiff
                       title={`AI Suggestions — Photo ${i + 1}`}
                       fields={buildPhotoDiffFields(analysis, pending)}
-                      onAccept={(key, newValue) => acceptPhotoField(i, key, newValue)}
+                      onAccept={(key, newValue) => {
+                        void acceptPhotoField(i, key, newValue).catch((err) => {
+                          alert(err instanceof Error ? err.message : 'Save failed');
+                        });
+                      }}
                       onReject={(key) => rejectPhotoField(i, key)}
-                      onAcceptAll={() => acceptAllPhotoFields(i)}
+                      onAcceptAll={() => void acceptAllPhotoFields(i)}
                       onRejectAll={() => rejectAllPhotoFields(i)}
                     />
                   </div>
@@ -459,8 +519,9 @@ export default function InspectionDetailPage() {
               value={report.narrative}
               multiline
               onSave={async (v) => {
-                await updateInspectionReportField(record.id, 'narrative', v);
-                setRecord((prev) => prev && prev.report ? { ...prev, report: { ...prev.report, narrative: v } } : prev);
+                const saved = await updateInspectionReportField(record.id, 'narrative', v);
+                if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
+                setRecord((prev) => (prev?.report ? { ...prev, report: { ...prev.report, narrative: v } } : prev));
               }}
               className={styles.summary}
             />
@@ -494,8 +555,8 @@ export default function InspectionDetailPage() {
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>Materials Observed</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                {report.materialsObserved.map((m, i) => (
-                  <span key={i} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>{m}</span>
+                {report.materialsObserved.map((m) => (
+                  <span key={`${record.id}-report-mat-${m}`} style={{ background: 'rgba(255,255,255,0.06)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>{m}</span>
                 ))}
               </div>
             </div>
@@ -529,7 +590,8 @@ export default function InspectionDetailPage() {
             const idx = record.photos.findIndex((p) => p.uri === aiEditPhotoUri);
             if (idx < 0) return;
             const publicUrl = await uploadEditedImage(editedDataUrl, 'inspections', record.id);
-            await updateInspectionPhotoAnalysis(record.id, idx, 'aiEditedPhotoUrl', publicUrl);
+            const saved = await updateInspectionPhotoAnalysis(record.id, idx, 'aiEditedPhotoUrl', publicUrl);
+            if (!saved) throw new Error('Could not save edited image. Check you are signed in and try again.');
             setAiEditedImages((prev) => ({ ...prev, [idx]: publicUrl }));
           }}
         />
@@ -539,6 +601,39 @@ export default function InspectionDetailPage() {
 }
 
 /* ---- Helpers ---- */
+
+function replacePhotoNarrativeInInspection(
+  prev: Inspection | null,
+  photoIndex: number,
+  narrative: string,
+): Inspection | null {
+  if (!prev) return prev;
+  const photos = prev.photos.map((ph, idx) =>
+    idx === photoIndex
+      ? { ...ph, analysis: { ...ph.analysis, narrative } as unknown as InspectionPhoto['analysis'] }
+      : ph,
+  );
+  return { ...prev, photos };
+}
+
+/** Text to show when `safetyHazard` is true: major/moderate defects first, then any defects, then narrative. */
+function safetyHazardExplanationLines(analysis: PhotoAnalysis): string[] {
+  const defects = analysis.defects ?? [];
+  const prominent = defects.filter((d) => {
+    const s = String(d.severity ?? '').toLowerCase();
+    return s === 'major' || s === 'moderate';
+  });
+  const fromProminent = prominent.map((d) => d.description?.trim()).filter((t): t is string => Boolean(t));
+  if (fromProminent.length > 0) return fromProminent;
+
+  const allDesc = defects.map((d) => d.description?.trim()).filter((t): t is string => Boolean(t));
+  if (allDesc.length > 0) return allDesc;
+
+  const narrative = analysis.narrative?.trim();
+  if (narrative) return [narrative];
+
+  return [];
+}
 
 const PHOTO_FIELD_LABELS: Record<string, string> = {
   conditionScore: 'Condition Score',
@@ -561,13 +656,25 @@ function stringifyAnalysisValue(val: unknown): string {
     return (val as string[]).join('\n');
   }
   if (val === null || val === undefined) return '';
-  return String(val);
+  if (typeof val === 'object') {
+    return JSON.stringify(val);
+  }
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') {
+    return String(val);
+  }
+  if (typeof val === 'bigint') return val.toString();
+  if (typeof val === 'symbol') return val.toString();
+  if (typeof val === 'function') return '';
+  return '';
 }
+
+const DEFECT_LINE_BRACKET_PREFIX = /^\[([A-F])\]\s*/;
 
 function parseDefectsString(str: string): { defectType: string; severity: string; nature: string[]; description: string; crackingCategory: null }[] {
   return str.split('\n').filter((l) => l.trim()).map((line) => {
-    const bracketMatch = line.match(/^\[([A-F])\]\s*/);
-    const defectType = bracketMatch ? bracketMatch[1] : 'A';
+    const bracketMatch = DEFECT_LINE_BRACKET_PREFIX.exec(line);
+    const defectType = bracketMatch?.[1] ?? 'A';
     const rest = bracketMatch ? line.slice(bracketMatch[0].length) : line;
     const colonIdx = rest.indexOf(':');
     if (colonIdx > 0) {
@@ -578,6 +685,26 @@ function parseDefectsString(str: string): { defectType: string; severity: string
     }
     return { defectType, severity: 'minor', nature: ['appearance'], description: rest.trim(), crackingCategory: null };
   });
+}
+
+function parsePhotoFieldAcceptValue(
+  key: string,
+  value: string,
+): string | number | boolean | string[] | ReturnType<typeof parseDefectsString> {
+  if (key === 'materials' || key === 'improvements') {
+    return value.split('\n').filter((v) => v.trim());
+  }
+  if (key === 'defects') {
+    return parseDefectsString(value);
+  }
+  if (key === 'conditionScore') {
+    const n = Number.parseInt(value, 10);
+    return Number.isNaN(n) ? 5 : n;
+  }
+  if (key === 'safetyHazard') {
+    return value === 'true';
+  }
+  return value;
 }
 
 function buildPhotoDiffFields(

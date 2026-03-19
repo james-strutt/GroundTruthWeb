@@ -3,7 +3,7 @@
  * All functions return typed results parsed from the jsonb columns.
  */
 
-import { supabase } from '../supabaseClient';
+import { supabase } from "../supabaseClient";
 import type {
   Snap,
   Inspection,
@@ -20,23 +20,75 @@ import type {
   Property,
   PropertySummary,
   PropertyStatus,
-} from '../types/common';
+} from "../types/common";
+
+/**
+ * Wait for the JWT to be read from storage before the first write after load.
+ * Without this, mutations can run with no Authorization header while the client
+ * is still hydrating the session (updates then affect 0 rows, often with no error).
+ */
+async function ensureAuthSessionLoaded(): Promise<boolean> {
+  if (!supabase) return false;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session !== null;
+}
+
+/**
+ * RLS-blocked updates often return HTTP 204 with 0 rows and no `error` field.
+ * Selecting the updated row verifies one row was written.
+ */
+async function updateRowById(
+  table: string,
+  id: string,
+  payload: Record<string, unknown>,
+): Promise<boolean> {
+  if (!supabase) return false;
+  if (!(await ensureAuthSessionLoaded())) return false;
+  if (Object.keys(payload).length === 0) return true;
+  const { data, error } = await supabase
+    .from(table)
+    .update(payload)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return false;
+  return data !== null;
+}
+
+async function deleteRowById(table: string, id: string): Promise<boolean> {
+  if (!supabase) return false;
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data, error } = await supabase
+    .from(table)
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return false;
+  return data !== null;
+}
 
 /* ---------- Snaps ---------- */
 
 export async function listSnaps(limit = 50): Promise<Snap[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('snaps')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("snaps")
+    .select("*")
+    .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map(mapSnap);
 }
 
 export async function getSnap(id: string): Promise<Snap | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('snaps').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("snaps")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapSnap(data) : null;
 }
 
@@ -45,16 +97,20 @@ export async function getSnap(id: string): Promise<Snap | null> {
 export async function listInspections(limit = 50): Promise<Inspection[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('inspections')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("inspections")
+    .select("*")
+    .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map(mapInspection);
 }
 
 export async function getInspection(id: string): Promise<Inspection | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('inspections').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("inspections")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapInspection(data) : null;
 }
 
@@ -63,16 +119,20 @@ export async function getInspection(id: string): Promise<Inspection | null> {
 export async function listAppraisals(limit = 50): Promise<Appraisal[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('appraisals')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("appraisals")
+    .select("*")
+    .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map(mapAppraisal);
 }
 
 export async function getAppraisal(id: string): Promise<Appraisal | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('appraisals').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("appraisals")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapAppraisal(data) : null;
 }
 
@@ -81,16 +141,20 @@ export async function getAppraisal(id: string): Promise<Appraisal | null> {
 export async function listWatched(limit = 50): Promise<WatchedProperty[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('watched_properties')
-    .select('*')
-    .order('last_visited_at', { ascending: false })
+    .from("watched_properties")
+    .select("*")
+    .order("last_visited_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map(mapWatched);
 }
 
 export async function getWatched(id: string): Promise<WatchedProperty | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('watched_properties').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("watched_properties")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapWatched(data) : null;
 }
 
@@ -99,16 +163,20 @@ export async function getWatched(id: string): Promise<WatchedProperty | null> {
 export async function listWalks(limit = 50): Promise<WalkSession[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('walk_sessions')
-    .select('*')
-    .order('started_at', { ascending: false })
+    .from("walk_sessions")
+    .select("*")
+    .order("started_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map(mapWalk);
 }
 
 export async function getWalk(id: string): Promise<WalkSession | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('walk_sessions').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("walk_sessions")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapWalk(data) : null;
 }
 
@@ -117,24 +185,31 @@ export async function getWalk(id: string): Promise<WalkSession | null> {
 export async function listDirectories(): Promise<DirectorySummary[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('directory_summary')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("directory_summary")
+    .select("*")
+    .order("created_at", { ascending: false });
   return (data ?? []).map(mapDirectorySummary);
 }
 
 export async function getDirectory(id: string): Promise<Directory | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('directories').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("directories")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapDirectory(data) : null;
 }
 
-export async function createDirectory(
-  fields: { name: string; description?: string; colour?: string; icon?: string },
-): Promise<Directory | null> {
+export async function createDirectory(fields: {
+  name: string;
+  description?: string;
+  colour?: string;
+  icon?: string;
+}): Promise<Directory | null> {
   if (!supabase) return null;
   const { data } = await supabase
-    .from('directories')
+    .from("directories")
     .insert({
       name: fields.name,
       description: fields.description ?? null,
@@ -148,68 +223,77 @@ export async function createDirectory(
 
 export async function updateDirectory(
   id: string,
-  updates: Partial<{ name: string; description: string; colour: string; icon: string; isArchived: boolean }>,
+  updates: Partial<{
+    name: string;
+    description: string;
+    colour: string;
+    icon: string;
+    isArchived: boolean;
+  }>,
 ): Promise<boolean> {
   if (!supabase) return false;
   const payload: Record<string, unknown> = {};
   if (updates.name !== undefined) payload.name = updates.name;
-  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.description !== undefined)
+    payload.description = updates.description;
   if (updates.colour !== undefined) payload.colour = updates.colour;
   if (updates.icon !== undefined) payload.icon = updates.icon;
-  if (updates.isArchived !== undefined) payload.is_archived = updates.isArchived;
-  const { error } = await supabase.from('directories').update(payload).eq('id', id);
-  return !error;
+  if (updates.isArchived !== undefined)
+    payload.is_archived = updates.isArchived;
+  return updateRowById("directories", id, payload);
 }
 
 export async function deleteDirectory(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('directories').delete().eq('id', id);
-  return !error;
+  return deleteRowById("directories", id);
 }
 
 /* ---------- Properties (new relational) ---------- */
 
-export async function listPropertiesByDirectory(directoryId: string): Promise<PropertySummary[]> {
+export async function listPropertiesByDirectory(
+  directoryId: string,
+): Promise<PropertySummary[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('properties_summary')
-    .select('*')
-    .eq('directory_id', directoryId)
-    .order('last_activity_at', { ascending: false });
+    .from("properties_summary")
+    .select("*")
+    .eq("directory_id", directoryId)
+    .order("last_activity_at", { ascending: false });
   return (data ?? []).map(mapPropertySummary);
 }
 
 export async function listAllProperties(): Promise<PropertySummary[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('properties_summary')
-    .select('*')
-    .order('last_activity_at', { ascending: false })
+    .from("properties_summary")
+    .select("*")
+    .order("last_activity_at", { ascending: false })
     .limit(200);
   return (data ?? []).map(mapPropertySummary);
 }
 
 export async function getProperty(id: string): Promise<Property | null> {
   if (!supabase) return null;
-  const { data } = await supabase.from('properties').select('*').eq('id', id).single();
+  const { data } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", id)
+    .single();
   return data ? mapProperty(data) : null;
 }
 
-export async function createProperty(
-  fields: {
-    directoryId: string;
-    address: string;
-    suburb?: string;
-    latitude?: number;
-    longitude?: number;
-    propid?: number;
-    status?: PropertyStatus;
-    notes?: string;
-  },
-): Promise<Property | null> {
+export async function createProperty(fields: {
+  directoryId: string;
+  address: string;
+  suburb?: string;
+  latitude?: number;
+  longitude?: number;
+  propid?: number;
+  status?: PropertyStatus;
+  notes?: string;
+}): Promise<Property | null> {
   if (!supabase) return null;
   const { data } = await supabase
-    .from('properties')
+    .from("properties")
     .insert({
       directory_id: fields.directoryId,
       address: fields.address,
@@ -218,7 +302,7 @@ export async function createProperty(
       latitude: fields.latitude ?? null,
       longitude: fields.longitude ?? null,
       propid: fields.propid ?? null,
-      status: fields.status ?? 'active',
+      status: fields.status ?? "active",
       notes: fields.notes ?? null,
     })
     .select()
@@ -228,11 +312,18 @@ export async function createProperty(
 
 export async function updateProperty(
   id: string,
-  updates: Partial<{ directoryId: string; address: string; suburb: string; status: PropertyStatus; notes: string }>,
+  updates: Partial<{
+    directoryId: string;
+    address: string;
+    suburb: string;
+    status: PropertyStatus;
+    notes: string;
+  }>,
 ): Promise<boolean> {
   if (!supabase) return false;
   const payload: Record<string, unknown> = {};
-  if (updates.directoryId !== undefined) payload.directory_id = updates.directoryId;
+  if (updates.directoryId !== undefined)
+    payload.directory_id = updates.directoryId;
   if (updates.address !== undefined) {
     payload.address = updates.address;
     payload.normalised_address = updates.address.trim().toLowerCase();
@@ -240,14 +331,11 @@ export async function updateProperty(
   if (updates.suburb !== undefined) payload.suburb = updates.suburb;
   if (updates.status !== undefined) payload.status = updates.status;
   if (updates.notes !== undefined) payload.notes = updates.notes;
-  const { error } = await supabase.from('properties').update(payload).eq('id', id);
-  return !error;
+  return updateRowById("properties", id, payload);
 }
 
 export async function deleteProperty(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('properties').delete().eq('id', id);
-  return !error;
+  return deleteRowById("properties", id);
 }
 
 export async function getPropertyActivities(propertyId: string): Promise<{
@@ -256,13 +344,30 @@ export async function getPropertyActivities(propertyId: string): Promise<{
   appraisals: Appraisal[];
   watched: WatchedProperty[];
 }> {
-  if (!supabase) return { snaps: [], inspections: [], appraisals: [], watched: [] };
+  if (!supabase)
+    return { snaps: [], inspections: [], appraisals: [], watched: [] };
 
   const [s, i, a, w] = await Promise.all([
-    supabase.from('snaps').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
-    supabase.from('inspections').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
-    supabase.from('appraisals').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
-    supabase.from('watched_properties').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+    supabase
+      .from("snaps")
+      .select("*")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("inspections")
+      .select("*")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("appraisals")
+      .select("*")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("watched_properties")
+      .select("*")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false }),
   ]);
 
   return {
@@ -277,37 +382,27 @@ export async function getPropertyActivities(propertyId: string): Promise<{
 
 /** Delete a snap record */
 export async function deleteSnap(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('snaps').delete().eq('id', id);
-  return !error;
+  return deleteRowById("snaps", id);
 }
 
 /** Delete an inspection record */
 export async function deleteInspection(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('inspections').delete().eq('id', id);
-  return !error;
+  return deleteRowById("inspections", id);
 }
 
 /** Delete an appraisal record */
 export async function deleteAppraisal(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('appraisals').delete().eq('id', id);
-  return !error;
+  return deleteRowById("appraisals", id);
 }
 
 /** Delete a watched property record */
 export async function deleteWatched(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('watched_properties').delete().eq('id', id);
-  return !error;
+  return deleteRowById("watched_properties", id);
 }
 
 /** Delete a walk session record */
 export async function deleteWalk(id: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('walk_sessions').delete().eq('id', id);
-  return !error;
+  return deleteRowById("walk_sessions", id);
 }
 
 /** Remove a specific photo from an inspection's photos array */
@@ -316,12 +411,19 @@ export async function deleteInspectionPhoto(
   photoIndex: number,
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { data: row } = await supabase.from('inspections').select('photos').eq('id', inspectionId).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("inspections")
+    .select("photos")
+    .eq("id", inspectionId)
+    .maybeSingle();
   if (!row) return false;
-  const photos = (row.photos ?? []) as unknown[];
+  const photos = [...((row.photos ?? []) as unknown[])];
   photos.splice(photoIndex, 1);
-  const { error } = await supabase.from('inspections').update({ photos, photo_count: photos.length }).eq('id', inspectionId);
-  return !error;
+  return updateRowById("inspections", inspectionId, {
+    photos,
+    photo_count: photos.length,
+  });
 }
 
 /* ---------- Image upload (AI edits → Supabase Storage) ---------- */
@@ -332,13 +434,16 @@ export async function uploadEditedImage(
   folder: string,
   recordId: string,
 ): Promise<string> {
-  if (!supabase) throw new Error('Supabase not configured');
+  if (!supabase) throw new Error("Supabase not configured");
+  if (!(await ensureAuthSessionLoaded())) {
+    throw new Error("You must be signed in to upload images.");
+  }
 
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match || !match[1] || !match[2]) throw new Error('Invalid data URL');
+  if (!match || !match[1] || !match[2]) throw new Error("Invalid data URL");
   const mimeType = match[1];
   const base64 = match[2];
-  const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+  const ext = mimeType === "image/png" ? "png" : "jpg";
 
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -346,12 +451,14 @@ export async function uploadEditedImage(
 
   const path = `${folder}/${recordId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from('ai-edits')
+    .from("ai-edits")
     .upload(path, bytes, { contentType: mimeType, upsert: true });
 
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
 
-  const { data: urlData } = supabase.storage.from('ai-edits').getPublicUrl(path);
+  const { data: urlData } = supabase.storage
+    .from("ai-edits")
+    .getPublicUrl(path);
   return urlData.publicUrl;
 }
 
@@ -364,13 +471,16 @@ export async function updateSnapAnalysisField(
   value: unknown,
 ): Promise<boolean> {
   if (!supabase) return false;
-  // Fetch current, merge, write back
-  const { data: row } = await supabase.from('snaps').select('ai_analysis').eq('id', id).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("snaps")
+    .select("ai_analysis")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return false;
   const analysis = (row.ai_analysis ?? {}) as Record<string, unknown>;
   analysis[field] = value;
-  const { error } = await supabase.from('snaps').update({ ai_analysis: analysis }).eq('id', id);
-  return !error;
+  return updateRowById("snaps", id, { ai_analysis: analysis });
 }
 
 /** Update a snap's top-level text fields */
@@ -378,9 +488,7 @@ export async function updateSnapField(
   id: string,
   updates: Record<string, unknown>,
 ): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('snaps').update(updates).eq('id', id);
-  return !error;
+  return updateRowById("snaps", id, updates);
 }
 
 /** Update a specific field within a photo's analysis in an inspection */
@@ -391,16 +499,20 @@ export async function updateInspectionPhotoAnalysis(
   value: unknown,
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { data: row } = await supabase.from('inspections').select('photos').eq('id', inspectionId).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("inspections")
+    .select("photos")
+    .eq("id", inspectionId)
+    .maybeSingle();
   if (!row) return false;
-  const photos = (row.photos ?? []) as Record<string, unknown>[];
+  const photos = [...((row.photos ?? []) as Record<string, unknown>[])];
   const photo = photos[photoIndex];
   if (!photo) return false;
-  const analysis = ((photo['analysis'] ?? {}) as Record<string, unknown>);
+  const analysis = (photo["analysis"] ?? {}) as Record<string, unknown>;
   analysis[field] = value;
-  photo['analysis'] = analysis;
-  const { error } = await supabase.from('inspections').update({ photos }).eq('id', inspectionId);
-  return !error;
+  photo["analysis"] = analysis;
+  return updateRowById("inspections", inspectionId, { photos });
 }
 
 /** Update an inspection's report narrative */
@@ -410,12 +522,16 @@ export async function updateInspectionReportField(
   value: unknown,
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { data: row } = await supabase.from('inspections').select('report').eq('id', id).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("inspections")
+    .select("report")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return false;
   const report = (row.report ?? {}) as Record<string, unknown>;
   report[field] = value;
-  const { error } = await supabase.from('inspections').update({ report }).eq('id', id);
-  return !error;
+  return updateRowById("inspections", id, { report });
 }
 
 /** Update a walk session's analysis narrative */
@@ -423,9 +539,7 @@ export async function updateWalkField(
   id: string,
   updates: Record<string, unknown>,
 ): Promise<boolean> {
-  if (!supabase) return false;
-  const { error } = await supabase.from('walk_sessions').update(updates).eq('id', id);
-  return !error;
+  return updateRowById("walk_sessions", id, updates);
 }
 
 /** Update an appraisal's price estimate methodology */
@@ -435,12 +549,16 @@ export async function updateAppraisalEstimateField(
   value: unknown,
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { data: row } = await supabase.from('appraisals').select('price_estimate').eq('id', id).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("appraisals")
+    .select("price_estimate")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return false;
   const estimate = (row.price_estimate ?? {}) as Record<string, unknown>;
   estimate[field] = value;
-  const { error } = await supabase.from('appraisals').update({ price_estimate: estimate }).eq('id', id);
-  return !error;
+  return updateRowById("appraisals", id, { price_estimate: estimate });
 }
 
 /** Persist comparable-sale selection toggles back to the scored_comps jsonb */
@@ -449,15 +567,19 @@ export async function updateAppraisalCompSelections(
   selectedCompIds: string[],
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { data: row } = await supabase.from('appraisals').select('scored_comps').eq('id', id).single();
+  if (!(await ensureAuthSessionLoaded())) return false;
+  const { data: row } = await supabase
+    .from("appraisals")
+    .select("scored_comps")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return false;
   const comps = (row.scored_comps ?? []) as Record<string, unknown>[];
   const selectedSet = new Set(selectedCompIds);
   for (const comp of comps) {
-    comp['is_manually_selected'] = selectedSet.has(comp['id'] as string);
+    comp["is_manually_selected"] = selectedSet.has(comp["id"] as string);
   }
-  const { error } = await supabase.from('appraisals').update({ scored_comps: comps }).eq('id', id);
-  return !error;
+  return updateRowById("appraisals", id, { scored_comps: comps });
 }
 
 /* ---------- Properties (grouped) ---------- */
@@ -465,26 +587,28 @@ export async function updateAppraisalCompSelections(
 export async function listProperties(): Promise<GroupedProperty[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('properties_grouped')
-    .select('*')
-    .order('last_activity_at', { ascending: false })
+    .from("properties_grouped")
+    .select("*")
+    .order("last_activity_at", { ascending: false })
     .limit(200);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any): GroupedProperty => ({
-    normalisedAddress: r.normalised_address ?? '',
-    address: r.address ?? '',
-    suburb: r.suburb ?? '',
-    latitude: r.latitude,
-    longitude: r.longitude,
-    propid: r.propid,
-    totalRecords: r.total_records ?? 0,
-    snapCount: r.snap_count ?? 0,
-    inspectionCount: r.inspection_count ?? 0,
-    appraisalCount: r.appraisal_count ?? 0,
-    monitorCount: r.monitor_count ?? 0,
-    lastActivityAt: r.last_activity_at ?? '',
-    thumbnailUrl: r.thumbnail_url,
-  }));
+  return (data ?? []).map(
+    (r: any): GroupedProperty => ({
+      normalisedAddress: r.normalised_address ?? "",
+      address: r.address ?? "",
+      suburb: r.suburb ?? "",
+      latitude: r.latitude,
+      longitude: r.longitude,
+      propid: r.propid,
+      totalRecords: r.total_records ?? 0,
+      snapCount: r.snap_count ?? 0,
+      inspectionCount: r.inspection_count ?? 0,
+      appraisalCount: r.appraisal_count ?? 0,
+      monitorCount: r.monitor_count ?? 0,
+      lastActivityAt: r.last_activity_at ?? "",
+      thumbnailUrl: r.thumbnail_url,
+    }),
+  );
 }
 
 export async function getPropertyRecords(normalisedAddress: string): Promise<{
@@ -493,14 +617,31 @@ export async function getPropertyRecords(normalisedAddress: string): Promise<{
   appraisals: Appraisal[];
   watched: WatchedProperty[];
 }> {
-  if (!supabase) return { snaps: [], inspections: [], appraisals: [], watched: [] };
+  if (!supabase)
+    return { snaps: [], inspections: [], appraisals: [], watched: [] };
 
   const addr = normalisedAddress;
   const [s, i, a, w] = await Promise.all([
-    supabase.from('snaps').select('*').ilike('address', addr).order('created_at', { ascending: false }),
-    supabase.from('inspections').select('*').ilike('address', addr).order('created_at', { ascending: false }),
-    supabase.from('appraisals').select('*').ilike('address', addr).order('created_at', { ascending: false }),
-    supabase.from('watched_properties').select('*').ilike('address', addr).order('created_at', { ascending: false }),
+    supabase
+      .from("snaps")
+      .select("*")
+      .ilike("address", addr)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("inspections")
+      .select("*")
+      .ilike("address", addr)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("appraisals")
+      .select("*")
+      .ilike("address", addr)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("watched_properties")
+      .select("*")
+      .ilike("address", addr)
+      .order("created_at", { ascending: false }),
   ]);
 
   return {
@@ -516,19 +657,19 @@ export async function getPropertyRecords(normalisedAddress: string): Promise<{
 export async function getWalkRoutes(): Promise<WalkRoute[]> {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('walk_sessions')
-    .select('id, title, route')
-    .order('started_at', { ascending: false })
+    .from("walk_sessions")
+    .select("id, title, route")
+    .order("started_at", { ascending: false })
     .limit(50);
   return (data ?? [])
     .filter((r) => {
-      const route = r['route'] as [number, number][] | null;
+      const route = r["route"] as [number, number][] | null;
       return route && route.length > 1;
     })
     .map((r) => ({
-      id: r['id'] as string,
-      title: (r['title'] as string) ?? '',
-      route: r['route'] as [number, number][],
+      id: r["id"] as string,
+      title: (r["title"] as string) ?? "",
+      route: r["route"] as [number, number][],
     }));
 }
 
@@ -537,48 +678,67 @@ export async function getAllPins(): Promise<MapPin[]> {
   const pins: MapPin[] = [];
 
   const [snaps, inspections, appraisals, watched, walks] = await Promise.all([
-    supabase.from('snaps').select('id, latitude, longitude, address, created_at').limit(100),
-    supabase.from('inspections').select('id, latitude, longitude, address, created_at').limit(100),
-    supabase.from('appraisals').select('id, latitude, longitude, address, created_at').limit(100),
-    supabase.from('watched_properties').select('id, latitude, longitude, address, created_at').limit(100),
-    supabase.from('walk_sessions').select('id, route, title, started_at').limit(50),
+    supabase
+      .from("snaps")
+      .select("id, latitude, longitude, address, created_at")
+      .limit(100),
+    supabase
+      .from("inspections")
+      .select("id, latitude, longitude, address, created_at")
+      .limit(100),
+    supabase
+      .from("appraisals")
+      .select("id, latitude, longitude, address, created_at")
+      .limit(100),
+    supabase
+      .from("watched_properties")
+      .select("id, latitude, longitude, address, created_at")
+      .limit(100),
+    supabase
+      .from("walk_sessions")
+      .select("id, route, title, started_at")
+      .limit(50),
   ]);
 
-  const addPins = (rows: Record<string, unknown>[] | null, type: FeatureType): void => {
+  const addPins = (
+    rows: Record<string, unknown>[] | null,
+    type: FeatureType,
+  ): void => {
     for (const r of rows ?? []) {
-      const lat = r['latitude'] as number | null;
-      const lng = r['longitude'] as number | null;
+      const lat = r["latitude"] as number | null;
+      const lng = r["longitude"] as number | null;
       if (lat && lng && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
         pins.push({
-          id: r['id'] as string,
+          id: r["id"] as string,
           type,
           latitude: lat,
           longitude: lng,
-          address: (r['address'] as string) ?? '',
-          createdAt: (r['created_at'] as string) ?? (r['started_at'] as string) ?? '',
+          address: (r["address"] as string) ?? "",
+          createdAt:
+            (r["created_at"] as string) ?? (r["started_at"] as string) ?? "",
         });
       }
     }
   };
 
-  addPins(snaps.data, 'snap');
-  addPins(inspections.data, 'inspect');
-  addPins(appraisals.data, 'appraise');
-  addPins(watched.data, 'monitor');
+  addPins(snaps.data, "snap");
+  addPins(inspections.data, "inspect");
+  addPins(appraisals.data, "appraise");
+  addPins(watched.data, "monitor");
 
   // Walks use the first route coordinate
   for (const w of walks.data ?? []) {
-    const route = w['route'] as [number, number][] | null;
+    const route = w["route"] as [number, number][] | null;
     if (route?.length) {
       const [lng, lat] = route[0]!;
       if (Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
       pins.push({
-        id: w['id'] as string,
-        type: 'explore',
+        id: w["id"] as string,
+        type: "explore",
         latitude: lat,
         longitude: lng,
-        address: (w['title'] as string) ?? '',
-        createdAt: (w['started_at'] as string) ?? '',
+        address: (w["title"] as string) ?? "",
+        createdAt: (w["started_at"] as string) ?? "",
       });
     }
   }
@@ -591,52 +751,69 @@ export async function getRecentActivity(limit = 20): Promise<ActivityItem[]> {
   const items: ActivityItem[] = [];
 
   const [snaps, inspections, appraisals] = await Promise.all([
-    supabase.from('snaps').select('id, address, suburb, photo_url, ai_analysis, created_at').order('created_at', { ascending: false }).limit(limit),
-    supabase.from('inspections').select('id, address, suburb, overall_score, created_at').order('created_at', { ascending: false }).limit(limit),
-    supabase.from('appraisals').select('id, address, suburb, price_estimate, created_at').order('created_at', { ascending: false }).limit(limit),
+    supabase
+      .from("snaps")
+      .select("id, address, suburb, photo_url, ai_analysis, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("inspections")
+      .select("id, address, suburb, overall_score, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("appraisals")
+      .select("id, address, suburb, price_estimate, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
   ]);
 
   for (const s of snaps.data ?? []) {
-    const analysis = s['ai_analysis'] as Record<string, unknown> | null;
+    const analysis = s["ai_analysis"] as Record<string, unknown> | null;
     items.push({
-      id: s['id'] as string,
-      type: 'snap',
-      address: s['address'] as string,
-      suburb: s['suburb'] as string,
-      summary: (analysis?.['summary'] as string) ?? 'Property snap',
-      createdAt: s['created_at'] as string,
-      photoUrl: s['photo_url'] as string | null,
+      id: s["id"] as string,
+      type: "snap",
+      address: s["address"] as string,
+      suburb: s["suburb"] as string,
+      summary: (analysis?.["summary"] as string) ?? "Property snap",
+      createdAt: s["created_at"] as string,
+      photoUrl: s["photo_url"] as string | null,
     });
   }
 
   for (const i of inspections.data ?? []) {
-    const score = i['overall_score'] as number | null;
+    const score = i["overall_score"] as number | null;
     items.push({
-      id: i['id'] as string,
-      type: 'inspect',
-      address: i['address'] as string,
-      suburb: i['suburb'] as string,
-      summary: score ? `Condition: ${score}/10` : 'Inspection',
-      createdAt: i['created_at'] as string,
+      id: i["id"] as string,
+      type: "inspect",
+      address: i["address"] as string,
+      suburb: i["suburb"] as string,
+      summary: score ? `Condition: ${score}/10` : "Inspection",
+      createdAt: i["created_at"] as string,
       photoUrl: null,
     });
   }
 
   for (const a of appraisals.data ?? []) {
-    const est = a['price_estimate'] as Record<string, unknown> | null;
-    const value = est?.['estimatedValue'] as number | null;
+    const est = a["price_estimate"] as Record<string, unknown> | null;
+    const value = est?.["estimatedValue"] as number | null;
     items.push({
-      id: a['id'] as string,
-      type: 'appraise',
-      address: a['address'] as string,
-      suburb: a['suburb'] as string,
-      summary: value ? `Est. $${(value / 1_000_000).toFixed(2)}M` : 'Appraisal',
-      createdAt: a['created_at'] as string,
+      id: a["id"] as string,
+      type: "appraise",
+      address: a["address"] as string,
+      suburb: a["suburb"] as string,
+      summary: value ? `Est. $${(value / 1_000_000).toFixed(2)}M` : "Appraisal",
+      createdAt: a["created_at"] as string,
       photoUrl: null,
     });
   }
 
-  return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit);
+  return items
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, limit);
 }
 
 /* ---------- Row mappers (snake_case → camelCase) ---------- */
@@ -647,8 +824,8 @@ function mapSnap(row: any): Snap {
     id: row.id,
     userId: row.user_id,
     propertyId: row.property_id ?? null,
-    address: row.address ?? '',
-    suburb: row.suburb ?? '',
+    address: row.address ?? "",
+    suburb: row.suburb ?? "",
     latitude: row.latitude,
     longitude: row.longitude,
     propid: row.propid,
@@ -667,8 +844,8 @@ function mapInspection(row: any): Inspection {
     id: row.id,
     userId: row.user_id,
     propertyId: row.property_id ?? null,
-    address: row.address ?? '',
-    suburb: row.suburb ?? '',
+    address: row.address ?? "",
+    suburb: row.suburb ?? "",
     latitude: row.latitude,
     longitude: row.longitude,
     propid: row.propid,
@@ -686,8 +863,8 @@ function mapAppraisal(row: any): Appraisal {
     id: row.id,
     userId: row.user_id,
     propertyId: row.property_id ?? null,
-    address: row.address ?? '',
-    suburb: row.suburb ?? '',
+    address: row.address ?? "",
+    suburb: row.suburb ?? "",
     latitude: row.latitude,
     longitude: row.longitude,
     propid: row.propid,
@@ -704,8 +881,8 @@ function mapWatched(row: any): WatchedProperty {
     id: row.id,
     userId: row.user_id,
     propertyId: row.property_id ?? null,
-    address: row.address ?? '',
-    suburb: row.suburb ?? '',
+    address: row.address ?? "",
+    suburb: row.suburb ?? "",
     latitude: row.latitude,
     longitude: row.longitude,
     baselinePhotoUrl: row.baseline_photo_url,
@@ -726,8 +903,8 @@ function mapWalk(row: any): WalkSession {
     userId: row.user_id,
     directoryId: row.directory_id ?? null,
     propertyId: row.property_id ?? null,
-    title: row.title ?? '',
-    suburb: row.suburb ?? '',
+    title: row.title ?? "",
+    suburb: row.suburb ?? "",
     route: row.route ?? [],
     photos: row.photos ?? [],
     segments: row.segments ?? [],
@@ -746,7 +923,7 @@ function mapDirectory(row: any): Directory {
   return {
     id: row.id,
     userId: row.user_id,
-    name: row.name ?? '',
+    name: row.name ?? "",
     description: row.description ?? null,
     colour: row.colour ?? null,
     icon: row.icon ?? null,
@@ -761,7 +938,7 @@ function mapDirectorySummary(row: any): DirectorySummary {
   return {
     id: row.id,
     userId: row.user_id,
-    name: row.name ?? '',
+    name: row.name ?? "",
     description: row.description ?? null,
     colour: row.colour ?? null,
     icon: row.icon ?? null,
@@ -784,13 +961,13 @@ function mapProperty(row: any): Property {
     id: row.id,
     directoryId: row.directory_id,
     userId: row.user_id,
-    address: row.address ?? '',
-    normalisedAddress: row.normalised_address ?? '',
+    address: row.address ?? "",
+    normalisedAddress: row.normalised_address ?? "",
     suburb: row.suburb ?? null,
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
     propid: row.propid ?? null,
-    status: row.status ?? 'active',
+    status: row.status ?? "active",
     notes: row.notes ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -803,17 +980,17 @@ function mapPropertySummary(row: any): PropertySummary {
     id: row.id,
     directoryId: row.directory_id,
     userId: row.user_id,
-    address: row.address ?? '',
-    normalisedAddress: row.normalised_address ?? '',
+    address: row.address ?? "",
+    normalisedAddress: row.normalised_address ?? "",
     suburb: row.suburb ?? null,
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
     propid: row.propid ?? null,
-    status: row.status ?? 'active',
+    status: row.status ?? "active",
     notes: row.notes ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    directoryName: row.directory_name ?? '',
+    directoryName: row.directory_name ?? "",
     directoryColour: row.directory_colour ?? null,
     snapCount: row.snap_count ?? 0,
     inspectionCount: row.inspection_count ?? 0,

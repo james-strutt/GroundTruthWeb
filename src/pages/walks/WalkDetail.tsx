@@ -188,13 +188,21 @@ export default function WalkDetailPage() {
             title="AI Re-analysis"
             fields={[{ key: 'narrative', label: 'Analysis Narrative', oldValue: record.analysisNarrative ?? '', newValue: pendingNarrative }]}
             onAccept={async (_key, value) => {
-              await updateWalkField(record.id, { analysis_narrative: value });
+              const saved = await updateWalkField(record.id, { analysis_narrative: value });
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev ? { ...prev, analysisNarrative: value } : prev);
               setPendingNarrative(null);
             }}
             onReject={() => setPendingNarrative(null)}
             onAcceptAll={async () => {
-              await updateWalkField(record.id, { analysis_narrative: pendingNarrative });
+              const saved = await updateWalkField(record.id, { analysis_narrative: pendingNarrative });
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev ? { ...prev, analysisNarrative: pendingNarrative } : prev);
               setPendingNarrative(null);
             }}
@@ -269,7 +277,11 @@ export default function WalkDetailPage() {
                 [dim]: { score: newScoreObj.score, notes: value },
                 overall: pendingStreetScore['overall'] as number,
               };
-              await updateWalkField(record.id, { street_score: updated });
+              const saved = await updateWalkField(record.id, { street_score: updated });
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev ? { ...prev, streetScore: updated } : prev);
               const remaining = (['walkability', 'streetscape', 'amenity', 'safety'] as const)
                 .filter((d) => d !== dim && (pendingStreetScore[d] as { notes: string })?.notes !== record.streetScore![d].notes);
@@ -282,7 +294,11 @@ export default function WalkDetailPage() {
               if (remaining.length === 0) setPendingStreetScore(null);
             }}
             onAcceptAll={async () => {
-              await updateWalkField(record.id, { street_score: pendingStreetScore });
+              const saved = await updateWalkField(record.id, { street_score: pendingStreetScore });
+              if (!saved) {
+                alert('Could not save changes. Check you are signed in and try again.');
+                return;
+              }
               setRecord((prev) => prev ? { ...prev, streetScore: pendingStreetScore as unknown as WalkSession['streetScore'] } : prev);
               setPendingStreetScore(null);
             }}
@@ -313,7 +329,8 @@ export default function WalkDetailPage() {
                     multiline
                     onSave={async (v) => {
                       const updated = { ...record.streetScore!, [dim]: { ...d, notes: v } };
-                      await updateWalkField(record.id, { street_score: updated });
+                      const saved = await updateWalkField(record.id, { street_score: updated });
+                      if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
                       setRecord((prev) => prev ? { ...prev, streetScore: updated } : prev);
                     }}
                     className={styles.summary}
@@ -359,7 +376,8 @@ export default function WalkDetailPage() {
             value={record.analysisNarrative ?? ''}
             multiline
             onSave={async (v) => {
-              await updateWalkField(record.id, { analysis_narrative: v });
+              const saved = await updateWalkField(record.id, { analysis_narrative: v });
+              if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
               setRecord((prev) => prev ? { ...prev, analysisNarrative: v } : prev);
             }}
             className={styles.summary}

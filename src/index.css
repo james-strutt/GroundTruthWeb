@@ -74,6 +74,11 @@
   --text-secondary: #d4cfc8;
   --text-muted: #8a8279;
   --topo-line-dark: rgba(255,255,255,0.035);
+
+  /* Dark text for light surfaces (cream, warm-white cards) — global theme is dark */
+  --text-on-light: #1C1917;
+  --text-on-light-secondary: #44403C;
+  --text-on-light-muted: #57534E;
 }
 
 html {

@@ -63,11 +63,12 @@ export default function SnapDetailPage() {
 
   async function applyAnalysisField(key: string, value: string) {
     if (!snap) return;
-    await updateSnapAnalysisField(snap.id, key, key === 'observations' || key === 'risks' || key === 'opportunities'
+    const ok = await updateSnapAnalysisField(snap.id, key, key === 'observations' || key === 'risks' || key === 'opportunities'
       ? value.split('\n').filter((v) => v.trim())
       : key === 'storeys' ? parseInt(value, 10) || null
       : key === 'confidenceScore' ? parseFloat(value) || 0
       : value);
+    if (!ok) throw new Error('Could not save changes. Check you are signed in and try again.');
     // Update local state
     setSnap((prev) => prev?.aiAnalysis ? {
       ...prev,
@@ -94,11 +95,15 @@ export default function SnapDetailPage() {
 
   async function acceptAllChanges() {
     if (!pendingAnalysis || !snap) return;
-    for (const [key, value] of Object.entries(pendingAnalysis)) {
-      const strVal = Array.isArray(value) ? (value as string[]).join('\n') : String(value ?? '');
-      await applyAnalysisField(key, strVal);
+    try {
+      for (const [key, value] of Object.entries(pendingAnalysis)) {
+        const strVal = Array.isArray(value) ? (value as string[]).join('\n') : String(value ?? '');
+        await applyAnalysisField(key, strVal);
+      }
+      setPendingAnalysis(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed');
     }
-    setPendingAnalysis(null);
   }
 
   if (loading) return <LoadingSpinner message="Loading snap..." />;
@@ -203,7 +208,8 @@ export default function SnapDetailPage() {
               value={analysis.summary}
               multiline
               onSave={async (v) => {
-                await updateSnapAnalysisField(snap.id, 'summary', v);
+                const saved = await updateSnapAnalysisField(snap.id, 'summary', v);
+                if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
                 setSnap((prev) => prev && prev.aiAnalysis ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, summary: v } } : prev);
               }}
               className={styles.summary}
@@ -230,7 +236,8 @@ export default function SnapDetailPage() {
                       onSave={async (v) => {
                         const updated = [...analysis.observations];
                         updated[i] = v;
-                        await updateSnapAnalysisField(snap.id, 'observations', updated);
+                        const saved = await updateSnapAnalysisField(snap.id, 'observations', updated);
+                        if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
                         setSnap((prev) => prev && prev.aiAnalysis ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, observations: updated } } : prev);
                       }}
                     />
@@ -252,7 +259,8 @@ export default function SnapDetailPage() {
                       onSave={async (v) => {
                         const updated = [...analysis.risks];
                         updated[i] = v;
-                        await updateSnapAnalysisField(snap.id, 'risks', updated);
+                        const saved = await updateSnapAnalysisField(snap.id, 'risks', updated);
+                        if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
                         setSnap((prev) => prev && prev.aiAnalysis ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, risks: updated } } : prev);
                       }}
                     />
@@ -274,7 +282,8 @@ export default function SnapDetailPage() {
                       onSave={async (v) => {
                         const updated = [...analysis.opportunities];
                         updated[i] = v;
-                        await updateSnapAnalysisField(snap.id, 'opportunities', updated);
+                        const saved = await updateSnapAnalysisField(snap.id, 'opportunities', updated);
+                        if (!saved) throw new Error('Could not save changes. Check you are signed in and try again.');
                         setSnap((prev) => prev && prev.aiAnalysis ? { ...prev, aiAnalysis: { ...prev.aiAnalysis, opportunities: updated } } : prev);
                       }}
                     />
@@ -303,7 +312,8 @@ export default function SnapDetailPage() {
           onClose={() => setShowAIEdit(false)}
           onSave={async (editedDataUrl) => {
             const publicUrl = await uploadEditedImage(editedDataUrl, 'snaps', snap.id);
-            await updateSnapAnalysisField(snap.id, 'aiEditedPhotoUrl', publicUrl);
+            const saved = await updateSnapAnalysisField(snap.id, 'aiEditedPhotoUrl', publicUrl);
+            if (!saved) throw new Error('Could not save edited image. Check you are signed in and try again.');
             setAiEditedImageUrl(publicUrl);
           }}
         />

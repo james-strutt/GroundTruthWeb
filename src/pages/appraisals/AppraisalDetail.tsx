@@ -72,13 +72,18 @@ export default function AppraisalDetailPage() {
   }, [fetchAppraisal]);
 
   const toggleSelection = useCallback((compId: string) => {
+    if (!record) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(compId)) next.delete(compId);
       else next.add(compId);
-      if (record) {
-        void updateAppraisalCompSelections(record.id, [...next]);
-      }
+      const reverted = new Set(prev);
+      void updateAppraisalCompSelections(record.id, [...next]).then((ok) => {
+        if (!ok) {
+          setSelectedIds(reverted);
+          alert('Could not save comparable selection. Check you are signed in and try again.');
+        }
+      });
       return next;
     });
   }, [record]);
