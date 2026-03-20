@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import Map, { Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
 import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Building2 } from 'lucide-react';
+import { Building2, ChevronUp, ChevronDown } from 'lucide-react';
 import { getAllPins, getRecentActivity, getWalkRoutes } from '../services/api';
 import { LayerControl } from '../components/map/LayerControl';
 import { DEFAULT_LAYERS, type SpatialLayer } from '../components/map/layerConstants';
@@ -51,8 +51,11 @@ export default function DashboardPage() {
     isMeasuring,
   } = measure;
   const [panelRatio, setPanelRatio] = useState(0.35);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const draggingRef = useRef(false);
+  const dragMovedRef = useRef(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const prevRatioRef = useRef(0.35);
 
   const [daPoints, setDaPoints] = useState<DA[]>([]);
   const [trainStations, setTrainStations] = useState<TrainStation[]>([]);
@@ -177,20 +180,33 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const id = requestAnimationFrame(() => mapRef.current?.resize());
+    return () => cancelAnimationFrame(id);
+  }, [panelRatio, panelCollapsed]);
+
   const handleDragStart = useCallback((e: ReactPointerEvent) => {
     draggingRef.current = true;
+    dragMovedRef.current = false;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handleDragMove = useCallback((e: ReactPointerEvent) => {
     if (!draggingRef.current || !dashboardRef.current) return;
+    dragMovedRef.current = true;
     const rect = dashboardRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const ratio = 1 - y / rect.height;
-    setPanelRatio(Math.min(0.65, Math.max(0.15, ratio)));
+    const clamped = Math.min(0.65, Math.max(0.15, ratio));
+    setPanelRatio(clamped);
+    setPanelCollapsed(false);
+    prevRatioRef.current = clamped;
   }, []);
 
   const handleDragEnd = useCallback(() => {
+    if (!dragMovedRef.current) {
+      setPanelCollapsed((prev) => !prev);
+    }
     draggingRef.current = false;
   }, []);
 
@@ -576,17 +592,19 @@ export default function DashboardPage() {
       </div>
 
       <div
-        className={styles.dragHandle}
+        className={`${styles.dragHandle} ${panelCollapsed ? styles.dragHandleCollapsed : ''}`}
         onPointerDown={handleDragStart}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
         onPointerCancel={handleDragEnd}
       >
+        {panelCollapsed ? <ChevronUp size={16} className={styles.dragChevron} /> : <ChevronDown size={16} className={styles.dragChevron} />}
         <div className={styles.dragHandleBar} />
+        {panelCollapsed ? <ChevronUp size={16} className={styles.dragChevron} /> : <ChevronDown size={16} className={styles.dragChevron} />}
       </div>
 
       <div
-        className={styles.panelWrapper}
+        className={`${styles.panelWrapper} ${panelCollapsed ? styles.panelCollapsed : ''}`}
         style={{ '--panel-ratio': panelRatio } as React.CSSProperties}
       >
         <ActivityPanel

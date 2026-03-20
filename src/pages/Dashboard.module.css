@@ -301,10 +301,15 @@
   display: none;
 }
 
+.dragChevron {
+  display: none;
+}
+
 /* Panel wrapper — desktop: passthrough */
 .panelWrapper {
   display: contents;
 }
+
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -324,13 +329,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 20px;
+    gap: 0.5rem;
+    height: 24px;
     background: #000000;
     border-top: 2px solid var(--terracotta);
     cursor: row-resize;
     touch-action: none;
     flex-shrink: 0;
     z-index: 2;
+    transition: background 0.15s;
+  }
+
+  .dragHandle:active {
+    background: rgba(212, 101, 59, 0.1);
+  }
+
+  .dragHandleCollapsed {
+    border-top-color: rgba(212, 101, 59, 0.6);
+  }
+
+  .dragChevron {
+    display: block;
+    color: rgba(212, 101, 59, 0.5);
+    flex-shrink: 0;
   }
 
   .dragHandleBar {
@@ -346,6 +367,13 @@
     height: calc(var(--panel-ratio) * 100%);
     min-height: 60px;
     max-height: 70%;
+    transition: height 0.25s ease;
+  }
+
+  .panelCollapsed {
+    height: 0;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .activityPanel {
