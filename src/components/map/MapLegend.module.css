@@ -116,13 +116,22 @@
 
 @media (max-width: 768px) {
   .container {
-    bottom: 0.75rem;
+    bottom: 0.5rem;
     right: 0.5rem;
-    max-height: calc(100% - 6rem);
+    max-height: calc(100% - 5rem);
   }
 
   .legendCard {
-    max-width: 160px;
-    min-width: 100px;
+    max-width: 150px;
+    min-width: 90px;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .legendTitle {
+    font-size: 0.5625rem;
+  }
+
+  .entryLabel {
+    font-size: 0.5625rem;
   }
 }

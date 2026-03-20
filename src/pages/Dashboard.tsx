@@ -3,7 +3,7 @@
  * 3D buildings toggle, and an activity feed sidebar.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Map, { Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
 import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
@@ -50,6 +50,10 @@ export default function DashboardPage() {
     clearMeasure: handleClearMeasure,
     isMeasuring,
   } = measure;
+  const [panelRatio, setPanelRatio] = useState(0.35);
+  const draggingRef = useRef(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
   const [daPoints, setDaPoints] = useState<DA[]>([]);
   const [trainStations, setTrainStations] = useState<TrainStation[]>([]);
   const [railwayGeoJson, setRailwayGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
@@ -171,6 +175,23 @@ export default function DashboardPage() {
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  const handleDragStart = useCallback((e: ReactPointerEvent) => {
+    draggingRef.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const handleDragMove = useCallback((e: ReactPointerEvent) => {
+    if (!draggingRef.current || !dashboardRef.current) return;
+    const rect = dashboardRef.current.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const ratio = 1 - y / rect.height;
+    setPanelRatio(Math.min(0.65, Math.max(0.15, ratio)));
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    draggingRef.current = false;
   }, []);
 
   const toggle3dBuildings = useCallback(() => {
@@ -299,7 +320,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className={styles.dashboard}>
+    <div className={styles.dashboard} ref={dashboardRef}>
       {/* Map */}
       <div className={styles.mapContainer}>
         <Map
@@ -554,16 +575,31 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <ActivityPanel
-        activity={activity}
-        pins={pins}
-        isLoading={isLoading}
-        expandedProperty={expandedProperty}
-        onExpandProperty={setExpandedProperty}
-        onFlyTo={(lng, lat) => {
-          mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
-        }}
-      />
+      <div
+        className={styles.dragHandle}
+        onPointerDown={handleDragStart}
+        onPointerMove={handleDragMove}
+        onPointerUp={handleDragEnd}
+        onPointerCancel={handleDragEnd}
+      >
+        <div className={styles.dragHandleBar} />
+      </div>
+
+      <div
+        className={styles.panelWrapper}
+        style={{ '--panel-ratio': panelRatio } as React.CSSProperties}
+      >
+        <ActivityPanel
+          activity={activity}
+          pins={pins}
+          isLoading={isLoading}
+          expandedProperty={expandedProperty}
+          onExpandProperty={setExpandedProperty}
+          onFlyTo={(lng, lat) => {
+            mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+          }}
+        />
+      </div>
     </div>
   );
 }
