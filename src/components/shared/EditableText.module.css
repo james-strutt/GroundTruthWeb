@@ -280,3 +280,36 @@
   background: rgba(239, 68, 68, 0.08);
   border-radius: 4px;
 }
+
+@media (max-width: 768px) {
+  .input,
+  .textarea {
+    font-size: 1rem;
+    padding: 0.6rem 0.75rem;
+    min-height: 44px;
+  }
+
+  .saveBtn {
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .cancelBtn {
+    min-height: 40px;
+    padding: 0.4rem;
+  }
+
+  .pencilIcon {
+    opacity: 0.4;
+  }
+
+  .micBtn {
+    opacity: 0.4;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

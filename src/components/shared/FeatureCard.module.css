@@ -119,3 +119,26 @@
   color: var(--text-muted);
   flex-shrink: 0;
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: 0.85rem;
+    min-height: 56px;
+  }
+
+  .card:active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(212, 101, 59, 0.45);
+  }
+
+  .thumbnail {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metaRow {
+    flex-wrap: wrap;
+  }
+}

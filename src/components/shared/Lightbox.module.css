@@ -38,3 +38,16 @@
 .closeButton:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 1rem;
+  }
+
+  .closeButton {
+    width: 44px;
+    height: 44px;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+}

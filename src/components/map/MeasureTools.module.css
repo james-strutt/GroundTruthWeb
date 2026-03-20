@@ -82,3 +82,16 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+@media (max-width: 768px) {
+  .container {
+    left: 0.625rem;
+    top: 0.625rem;
+  }
+
+  .btn,
+  .clearBtn {
+    width: 36px;
+    height: 36px;
+  }
+}
