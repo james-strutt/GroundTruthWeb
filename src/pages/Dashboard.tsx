@@ -52,6 +52,7 @@ export default function DashboardPage() {
   } = measure;
   const [panelRatio, setPanelRatio] = useState(0.35);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const draggingRef = useRef(false);
   const dragMovedRef = useRef(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -180,13 +181,21 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const id = requestAnimationFrame(() => mapRef.current?.resize());
-    return () => cancelAnimationFrame(id);
-  }, [panelRatio, panelCollapsed]);
+    const el = mapContainerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.resize();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleDragStart = useCallback((e: ReactPointerEvent) => {
     draggingRef.current = true;
+    setIsDragging(true);
     dragMovedRef.current = false;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
@@ -208,6 +217,7 @@ export default function DashboardPage() {
       setPanelCollapsed((prev) => !prev);
     }
     draggingRef.current = false;
+    setIsDragging(false);
   }, []);
 
   const toggle3dBuildings = useCallback(() => {
@@ -338,7 +348,7 @@ export default function DashboardPage() {
   return (
     <div className={styles.dashboard} ref={dashboardRef}>
       {/* Map */}
-      <div className={styles.mapContainer}>
+      <div className={styles.mapContainer} ref={mapContainerRef}>
         <Map
           ref={mapRef}
           mapboxAccessToken={MAPBOX_TOKEN}
@@ -604,7 +614,7 @@ export default function DashboardPage() {
       </div>
 
       <div
-        className={`${styles.panelWrapper} ${panelCollapsed ? styles.panelCollapsed : ''}`}
+        className={`${styles.panelWrapper} ${panelCollapsed ? styles.panelCollapsed : ''} ${isDragging ? styles.panelDragging : ''}`}
         style={{ '--panel-ratio': panelRatio } as React.CSSProperties}
       >
         <ActivityPanel
