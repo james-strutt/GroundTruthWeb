@@ -97,12 +97,36 @@
 .adjustBadge { font-family: var(--font-data); font-size: 0.625rem; color: var(--text-on-light-muted); display: inline-flex; align-items: center; gap: 0.2rem; }
 
 @media (max-width: 768px) {
-  .mapLayout { flex-direction: column; height: auto; }
-  .mapContainer { height: 300px; }
-  .compSidebar { width: 100%; max-height: 400px; border-left: none; border-top: var(--border-light); }
-  .compRow { min-height: 48px; padding: 0.6rem 0.75rem; }
-  .selectBtn { min-height: 44px; }
-  .header { flex-direction: column; align-items: flex-start; }
-  .estimateSection { grid-template-columns: 1fr; }
+  .mapLayout { flex-direction: column; height: auto; border-radius: 12px; }
+  .mapContainer { height: 280px; }
+  .compSidebar {
+    width: 100%;
+    max-height: 350px;
+    border-left: none;
+    border-top: var(--border-light);
+    overscroll-behavior-y: contain;
+  }
+  .compRow {
+    min-height: 52px;
+    padding: 0.65rem 0.85rem;
+  }
+  .compRow:active {
+    background: rgba(0, 0, 0, 0.06);
+  }
+  .selectBtn { min-height: 44px; font-size: 0.8125rem; }
+  .header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .estimateSection { grid-template-columns: 1fr; gap: 0.75rem; }
+  .estimateCard { padding: 1rem; }
+  .selectedGrid { grid-template-columns: 1fr; }
   .selectedCardGrid { grid-template-columns: repeat(2, 1fr); }
+  .selectedCard { padding: 0.75rem; }
+  .topBar { margin-bottom: 0.5rem; }
+  .backButton { min-height: 44px; padding: 0.5rem 0; }
+  .deleteButton { min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+  .address { font-size: 1.125rem; }
+  .estimateHeroValue { font-size: 1.625rem; }
+  .compDetailGrid { grid-template-columns: repeat(2, 1fr); }
 }

@@ -110,3 +110,35 @@
   border-radius: 8px;
   flex-shrink: 0;
 }
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .card {
+    padding: 0.85rem;
+    min-height: 56px;
+  }
+
+  .card:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .thumbnail {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .address {
+    font-size: 0.8125rem;
+  }
+
+  .badges {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+}

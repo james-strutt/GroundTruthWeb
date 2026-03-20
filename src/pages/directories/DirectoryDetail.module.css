@@ -346,12 +346,52 @@
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: 1fr;
+    gap: 0.4rem;
   }
 
   .header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
+  }
+
+  .card {
+    padding: 0.85rem;
+    min-height: 56px;
+  }
+
+  .card:active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(212, 101, 59, 0.45);
+  }
+
+  .thumbnail,
+  .thumbnailPlaceholder {
+    width: 56px;
+    height: 56px;
+  }
+
+  .modal {
+    width: 94%;
+    max-width: none;
+  }
+
+  .formInput {
+    font-size: 1rem;
+    padding: 0.65rem 0.75rem;
+    min-height: 44px;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .cancelButton,
+  .submitButton {
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
   }
 }
 
@@ -364,5 +404,9 @@
     width: 100%;
     justify-content: center;
     min-height: 44px;
+  }
+
+  .badges {
+    flex-wrap: wrap;
   }
 }

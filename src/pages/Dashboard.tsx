@@ -10,7 +10,6 @@ import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Building2 } from 'lucide-react';
 import { getAllPins, getRecentActivity, getWalkRoutes } from '../services/api';
-import { colours } from '../theme';
 import { LayerControl } from '../components/map/LayerControl';
 import { DEFAULT_LAYERS, type SpatialLayer } from '../components/map/layerConstants';
 import { MapLegend } from '../components/map/MapLegend';

@@ -34,15 +34,20 @@
 .confidenceLabel { font-family: var(--font-data); font-size: 0.8125rem; color: var(--text-secondary); }
 
 @media (max-width: 768px) {
-  .heroSection { flex-direction: column; }
-  .photoContainer { width: 100%; height: 200px; }
-  .detailGrid { grid-template-columns: repeat(2, 1fr); }
-  .grid { grid-template-columns: 1fr; }
+  .heroSection { flex-direction: column; gap: 1rem; }
+  .photoContainer { width: 100%; height: 220px; border-radius: 12px; }
+  .detailGrid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .grid { grid-template-columns: 1fr; gap: 0.75rem; }
+  .card { padding: 1rem; }
+  .topBar { margin-bottom: 1rem; }
+  .backButton { min-height: 44px; padding: 0.5rem 0; }
 }
 
 @media (max-width: 480px) {
   .address { font-size: 1.25rem; }
   .backButton { font-size: 0.8125rem; }
-  .deleteButton { min-height: 44px; }
+  .deleteButton { min-height: 44px; padding: 0.4rem 0.75rem; }
   .reanalyseBtn { min-height: 44px; }
+  .detailGrid { grid-template-columns: 1fr 1fr; }
+  .summary { font-size: 0.8125rem; }
 }

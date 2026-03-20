@@ -61,7 +61,7 @@
   .navLinks a:not(.navCta) { display: none; }
   .navInner { padding: 0 16px; height: 56px; }
   .navBrand { font-size: 18px; }
-  .navCta { padding: 6px 16px; font-size: 13px; }
+  .navCta { padding: 8px 18px; font-size: 14px; min-height: 40px; display: inline-flex; align-items: center; }
 }
 
 /* ═══════════════════════════════════
@@ -640,8 +640,8 @@
 
 @media (max-width: 480px) {
   .waitlistForm { flex-direction: column; max-width: 100%; }
-  .emailInput { padding: 10px 14px; font-size: 14px; }
-  .submitBtn { padding: 10px 20px; font-size: 14px; white-space: normal; }
+  .emailInput { padding: 14px 16px; font-size: 16px; min-height: 48px; border-radius: 12px; }
+  .submitBtn { padding: 14px 20px; font-size: 16px; white-space: normal; min-height: 48px; border-radius: 12px; }
   .formSuccess { font-size: 14px; padding: 10px 16px; }
   .footer { padding: 24px 16px; }
 }

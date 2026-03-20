@@ -41,3 +41,15 @@
   text-overflow: ellipsis;
   max-width: 200px;
 }
+
+@media (max-width: 768px) {
+  .breadcrumb {
+    padding: 0.35rem 0 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .link,
+  .current {
+    max-width: 140px;
+  }
+}

@@ -235,14 +235,46 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .modal {
-    width: 96%;
-    padding: 1rem;
+    width: 94%;
+    max-width: none;
+    max-height: 85dvh;
+  }
+
+  .previewImage {
+    max-height: 200px;
+  }
+
+  .promptInput {
+    font-size: 1rem;
+    min-height: 80px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
   }
 
   .primaryButton,
   .secondaryButton {
     min-height: 44px;
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .suggestionChip {
+    padding: 0.35rem 0.75rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    width: 96%;
+    padding: 1rem;
   }
 }

@@ -16,7 +16,6 @@ import {
   Eye,
   Footprints,
   LogOut,
-  User,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './AppLayout.module.css';
@@ -41,10 +40,10 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { to: '/app', icon: <LayoutDashboard size={20} />, label: 'Dashboard', end: true },
-  { to: '/app/directories', icon: <FolderOpen size={20} />, label: 'Directories' },
-  { to: '/app/walks', icon: <Footprints size={20} />, label: 'Walks' },
-  { to: '/app', icon: <User size={20} />, label: 'Profile' },
+  { to: '/app', icon: <LayoutDashboard size={22} />, label: 'Map', end: true },
+  { to: '/app/directories', icon: <FolderOpen size={22} />, label: 'Directories' },
+  { to: '/app/walks', icon: <Footprints size={22} />, label: 'Walks' },
+  { to: '/app/properties', icon: <Building size={22} />, label: 'Properties' },
 ];
 
 export function AppLayout() {
@@ -107,6 +106,17 @@ export function AppLayout() {
           </button>
         </div>
       </nav>
+
+      <header className={styles.mobileHeader}>
+        <span className={styles.mobileHeaderBrand}>GroundTruth</span>
+        <button
+          className={styles.mobileHeaderAction}
+          onClick={() => void signOut()}
+          aria-label="Sign out"
+        >
+          <LogOut size={16} />
+        </button>
+      </header>
 
       <main id="main-content" className={styles.content}>
         <Outlet />

@@ -281,10 +281,16 @@
 @media (max-width: 768px) {
   .overviewGrid {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .overviewCard {
+    padding: 0.85rem;
   }
 
   .completenessGrid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
   }
 
   .activityGrid {
@@ -293,6 +299,40 @@
 
   .propertyHeader {
     flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .tabs {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 0 1rem;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    padding: 0.65rem 0.75rem;
+    min-height: 44px;
+  }
+
+  .tab:active {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .notesArea {
+    font-size: 1rem;
+    min-height: 100px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .saveButton {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
   }
 }
 
@@ -308,5 +348,9 @@
   .tab {
     padding: 0.5rem 0.6rem;
     font-size: 0.75rem;
+  }
+
+  .overviewValue {
+    font-size: 1.125rem;
   }
 }

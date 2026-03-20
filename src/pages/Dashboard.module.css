@@ -301,31 +301,84 @@
   .dashboard {
     flex-direction: column;
     margin: -1rem;
-    height: calc(100vh - 5rem);
+    width: calc(100% + 2rem);
+    height: calc(100dvh - 7.5rem);
   }
 
   .mapContainer {
     flex: 1;
-    min-height: 300px;
+    min-height: 40dvh;
   }
 
   .activityPanel {
     width: 100%;
-    max-height: 40vh;
+    max-height: 45dvh;
     border-left: none;
     border-top: 2px solid var(--terracotta);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .activityTitle {
+    padding: 0.85rem 1rem 0.5rem;
+    font-size: 1rem;
+    position: sticky;
+    top: 0;
+    background: #000000;
+    z-index: 1;
+  }
+
+  .activityCard {
+    padding: 0.75rem 1rem;
+    min-height: 48px;
+  }
+
+  .activityCard:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .propertyItem {
+    min-height: 44px;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .propertyItem:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .viewAllButton {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
   }
 
   .legend {
-    bottom: 1rem;
+    bottom: 0.75rem;
     left: 0.5rem;
-    padding: 0.4rem 0.5rem;
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .legendItem {
     font-size: 0.625rem;
   }
 
   .buildingsToggle {
-    top: 6.5rem;
+    top: 0.625rem;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .activityAddress {
+    font-size: 0.75rem;
+  }
+
+  .featureBadge {
+    font-size: 0.5625rem;
   }
 }
