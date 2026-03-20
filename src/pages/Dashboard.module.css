@@ -108,6 +108,8 @@
   transition: background 0.15s;
   color: inherit;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .activityCard:hover {
@@ -126,6 +128,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  min-width: 0;
 }
 
 .propertyIcon {
@@ -190,6 +193,8 @@
   cursor: pointer;
   color: inherit;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   border-radius: 5px;
   transition: background 0.1s;
 }

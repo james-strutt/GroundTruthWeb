@@ -10,6 +10,8 @@
   transition: border-color 0.15s;
   text-align: left;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   color: inherit;
 }
 
@@ -43,6 +45,7 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .addressIcon {
