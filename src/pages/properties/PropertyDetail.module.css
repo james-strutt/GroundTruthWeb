@@ -24,6 +24,8 @@
   font-size: 1.5rem;
   color: var(--text-primary);
   margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .meta {
