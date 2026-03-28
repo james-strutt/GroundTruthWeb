@@ -5,6 +5,7 @@
 
 import { useState, useRef } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
+import { sanitiseSearchQuery } from '../../utils/sanitise';
 import styles from './AddressSearch.module.css';
 
 interface AddressResult {
@@ -56,14 +57,15 @@ export function AddressSearch({ onSelect }: AddressSearchProps) {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (value.trim().length < 3) {
+    const sanitised = sanitiseSearchQuery(value);
+    if (sanitised.length < 3) {
       setResults([]);
       return;
     }
 
     debounceRef.current = setTimeout(() => {
       setIsSearching(true);
-      void searchAddresses(value).then((r) => {
+      void searchAddresses(sanitised).then((r) => {
         setResults(r);
         setIsSearching(false);
       });

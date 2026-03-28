@@ -28,7 +28,14 @@
       "Bash(npm install:*)",
       "Bash(npx vite:*)",
       "Bash(npm run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(npx supabase:*)",
+      "Bash(WT=\"C:\\\\Users\\\\James\\\\Documents\\\\GroundTruthWeb\\\\.claude\\\\worktrees\\\\agent-ac5b1325\")",
+      "Bash(MAIN=\"C:\\\\Users\\\\James\\\\Documents\\\\GroundTruthWeb\")",
+      "Bash(cp -r \"$WT/src/services/shared\" \"$MAIN/src/services/\")",
+      "Bash(for f:*)",
+      "Bash(do cp:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

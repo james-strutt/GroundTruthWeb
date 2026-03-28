@@ -11,6 +11,8 @@ export interface SpatialLayer {
   opacity: number;
   /** Lower values render beneath higher values on the map */
   zIndex: number;
+  /** Fill/stroke colour for GeoJSON-based vector layers */
+  colour?: string;
 }
 
 function arcgisTileUrl(baseUrl: string, layerId?: number): string {
@@ -101,10 +103,21 @@ export const DEFAULT_LAYERS: SpatialLayer[] = [
     visible: false,
     opacity: 0.5,
     zIndex: 30,
+    colour: "#DC2626",
+  },
+  {
+    id: "flood",
+    label: "Flood Prone",
+    group: "Hazards",
+    tileUrl: "",
+    visible: false,
+    opacity: 0.5,
+    zIndex: 31,
+    colour: "#2563EB",
   },
   {
     id: "heritage",
-    label: "Heritage",
+    label: "Heritage Items",
     group: "Hazards",
     tileUrl: arcgisTileUrl(
       "https://mapprod3.environment.nsw.gov.au/arcgis/rest/services/Planning/EPI_Primary_Planning_Layers/MapServer",
@@ -112,7 +125,8 @@ export const DEFAULT_LAYERS: SpatialLayer[] = [
     ),
     visible: false,
     opacity: 0.5,
-    zIndex: 31,
+    zIndex: 32,
+    colour: "#7C3AED",
   },
   {
     id: "contamination",
@@ -124,7 +138,18 @@ export const DEFAULT_LAYERS: SpatialLayer[] = [
     ),
     visible: false,
     opacity: 0.5,
-    zIndex: 32,
+    zIndex: 33,
+    colour: "#EA580C",
+  },
+  {
+    id: "acid-sulfate",
+    label: "Acid Sulfate Soils",
+    group: "Hazards",
+    tileUrl: "",
+    visible: false,
+    opacity: 0.5,
+    zIndex: 34,
+    colour: "#CA8A04",
   },
   // Sales & DAs — above hazards
   {

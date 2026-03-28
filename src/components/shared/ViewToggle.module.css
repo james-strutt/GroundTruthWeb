@@ -1,0 +1,62 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.buttonActive {
+  background: rgba(212, 101, 59, 0.15);
+  color: var(--terracotta);
+}
+
+.buttonActive:hover {
+  background: rgba(212, 101, 59, 0.2);
+  color: var(--terracotta);
+}
+
+.exportButton {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.exportButton:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+}

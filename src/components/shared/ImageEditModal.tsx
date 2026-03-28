@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Loader2, X } from 'lucide-react';
 import { editImageWithAI } from '../../services/aiService';
+import { useCooldown } from '../../hooks/useCooldown';
 import styles from './ImageEditModal.module.css';
 
 interface ImageEditModalProps {
@@ -39,6 +40,7 @@ export function ImageEditModal({
   const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCoolingDown, cooldownRemaining, startCooldown] = useCooldown(15);
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,7 +73,7 @@ export function ImageEditModal({
   if (!visible) return null;
 
   async function handleGenerate() {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim() || isGenerating || isCoolingDown) return;
     setIsGenerating(true);
     setError(null);
     setEditedImageUrl(null);
@@ -83,6 +85,7 @@ export function ImageEditModal({
       setError(err instanceof Error ? err.message : 'Image editing failed');
     } finally {
       setIsGenerating(false);
+      startCooldown();
     }
   }
 
@@ -107,15 +110,14 @@ export function ImageEditModal({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="AI Image Edit"
+        aria-labelledby="image-edit-modal-title"
       >
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <Sparkles size={18} className={styles.titleIcon} />
-            <h3 className={styles.title}>AI Image Edit</h3>
+            <h3 id="image-edit-modal-title" className={styles.title}>AI Image Edit</h3>
           </div>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -144,6 +146,7 @@ export function ImageEditModal({
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="e.g. Remove the fence and show the view behind"
           rows={3}
+          maxLength={500}
           disabled={isGenerating}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !editedImageUrl) {
@@ -207,9 +210,9 @@ export function ImageEditModal({
             <button
               className={styles.primaryButton}
               onClick={() => void handleGenerate()}
-              disabled={!prompt.trim() || isGenerating}
+              disabled={!prompt.trim() || isGenerating || isCoolingDown}
             >
-              {isGenerating ? 'Generating...' : 'Generate'}
+              {isGenerating ? 'Generating...' : isCoolingDown ? `Wait ${cooldownRemaining}s` : 'Generate'}
             </button>
           )}
         </div>

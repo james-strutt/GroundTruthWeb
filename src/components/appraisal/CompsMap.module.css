@@ -1,0 +1,228 @@
+.container {
+  width: 100%;
+  height: 420px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: var(--border-standard);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  margin-top: 1.25rem;
+}
+
+.mapWrap {
+  width: 100%;
+  height: 100%;
+}
+
+/* Subject pin — large terracotta marker */
+.subjectPin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  border: 2.5px solid var(--warm-white);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Comp pins — small, colour-coded */
+.compPin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.compPin:hover {
+  transform: scale(1.15);
+}
+
+.compDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 253, 249, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.compDotInferior {
+  background: var(--sage);
+}
+
+.compDotSimilar {
+  background: var(--amber);
+}
+
+.compDotSuperior {
+  background: var(--brick);
+}
+
+.compLabel {
+  font-family: var(--font-data);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--warm-white);
+  background: rgba(28, 25, 23, 0.75);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Popup card */
+.popup {
+  font-family: var(--font-body);
+  min-width: 200px;
+}
+
+.popup :global(.mapboxgl-popup-content) {
+  background: var(--warm-white);
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: var(--shadow-md);
+  border: var(--border-light);
+}
+
+.popup :global(.mapboxgl-popup-tip) {
+  border-top-color: var(--warm-white);
+}
+
+.popupContent {
+  padding: 0.65rem 0.75rem;
+}
+
+.popupAddress {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
+
+.popupGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+}
+
+.popupItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.popupLabel {
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  color: var(--text-on-light-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.popupValue {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--text-on-light);
+}
+
+/* Radius legend */
+.radiusLegend {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  background: rgba(255, 253, 249, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: var(--border-standard);
+}
+
+.radiusLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  color: var(--text-on-light-secondary);
+}
+
+.radiusLegendSwatch {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--terracotta);
+  opacity: 0.5;
+}
+
+/* Colour legend */
+.colourLegend {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  background: rgba(255, 253, 249, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: var(--border-standard);
+}
+
+.colourLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  color: var(--text-on-light-secondary);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legendDotSubject {
+  background: var(--terracotta);
+  border: 1px solid var(--warm-white);
+}
+
+.legendDotInferior {
+  background: var(--sage);
+}
+
+.legendDotSimilar {
+  background: var(--amber);
+}
+
+.legendDotSuperior {
+  background: var(--brick);
+}
+
+.sectionTitle {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.25rem 0 0;
+}
+
+@media (max-width: 768px) {
+  .container {
+    height: 320px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    height: 260px;
+  }
+}

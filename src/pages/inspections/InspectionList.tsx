@@ -1,29 +1,69 @@
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ClipboardCheck } from 'lucide-react';
-import { listInspections } from '../../services/api';
+import { useInspectionsQuery } from '../../hooks/queries/useInspections';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { FeatureCard } from '../../components/shared/FeatureCard';
 import { GroupedFeatureList } from '../../components/shared/GroupedFeatureList';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { DataTable, type Column } from '../../components/shared/DataTable';
+import { ViewToggle } from '../../components/shared/ViewToggle';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { exportToCsv } from '../../utils/csvExport';
+import { formatDate } from '../../utils/formatDate';
 import type { Inspection } from '../../types/common';
 
-export default function InspectionListPage() {
-  const [items, setItems] = useState<Inspection[]>([]);
-  const [loading, setLoading] = useState(true);
+const TABLE_COLUMNS: Column<Inspection>[] = [
+  { key: 'address', label: 'Address', sortable: true },
+  { key: 'suburb', label: 'Suburb', sortable: true },
+  { key: 'overallScore', label: 'Score', sortable: true, render: (row) => row.overallScore ? `${row.overallScore}/10` : '' },
+  { key: 'createdAt', label: 'Date', sortable: true, render: (row) => formatDate(row.createdAt) },
+];
 
-  useEffect(() => {
-    void listInspections().then((d) => { setItems(d); setLoading(false); });
-  }, []);
+const CSV_COLUMNS = [
+  { key: 'address', label: 'Address' },
+  { key: 'suburb', label: 'Suburb' },
+  { key: 'score', label: 'Score' },
+  { key: 'createdAt', label: 'Date' },
+];
+
+export default function InspectionListPage() {
+  const { data: items = [], isLoading } = useInspectionsQuery();
+  const [view, setView] = useState<'card' | 'table'>('card');
+  const navigate = useNavigate();
+
+  const handleExport = useCallback(() => {
+    const rows = items.map((i) => ({
+      address: i.address,
+      suburb: i.suburb,
+      score: i.overallScore ? `${i.overallScore}/10` : '',
+      createdAt: formatDate(i.createdAt),
+    }));
+    exportToCsv('inspections', CSV_COLUMNS, rows);
+  }, [items]);
 
   return (
     <div>
-      <PageHeader icon={<ClipboardCheck size={22} />} title="Inspections" count={items.length} />
-      {loading ? (
-        <LoadingSpinner message="Loading inspections..." />
+      <PageHeader
+        icon={<ClipboardCheck size={22} />}
+        title="Inspections"
+        count={items.length}
+        actions={<ViewToggle view={view} onViewChange={setView} onExport={handleExport} />}
+      />
+      {isLoading ? (
+        <SkeletonCard count={4} />
+      ) : view === 'table' ? (
+        <DataTable<Inspection>
+          columns={TABLE_COLUMNS}
+          data={items}
+          keyField="id"
+          onRowClick={(row) => navigate(`/app/inspections/${row.id}`)}
+        />
       ) : (
         <GroupedFeatureList
           records={items}
-          emptyMessage="No inspections yet."
+          emptyMessage="No inspections yet"
+          emptyIcon={<ClipboardCheck size={48} />}
+          emptySubtitle="Start an inspection from the iOS app"
           renderCard={(i) => (
             <FeatureCard
               key={i.id}

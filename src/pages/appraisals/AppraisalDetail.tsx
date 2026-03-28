@@ -1,16 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, TrendingUp, TrendingDown, Minus, Trash2, Check, Footprints } from 'lucide-react';
 import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getAppraisal, deleteAppraisal, updateAppraisalCompSelections } from '../../services/api';
+import { updateAppraisalCompSelections } from '../../services/appraisalService';
 import { computeWalkingRoute, type WalkingRouteResult } from '../../services/walkingRoute';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAppraisalQuery, useDeleteAppraisal } from '../../hooks/queries/useAppraisals';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { UpgradePrompt } from '../../components/shared/UpgradePrompt';
+import { CompsMap } from '../../components/appraisal/CompsMap';
 import { colours } from '../../theme';
-import type { Appraisal, ScoredComp } from '../../types/common';
+import type { ScoredComp } from '../../types/common';
 import styles from './AppraisalDetail.module.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '';
@@ -41,57 +46,41 @@ function AdjustIcon({ dir }: { dir: string | null }) {
 export default function AppraisalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [record, setRecord] = useState<Appraisal | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { isProOrAbove, isLoading: subLoading } = useSubscription();
+  const { data: record, isLoading, error, refetch } = useAppraisalQuery(id);
+  const deleteAppraisalMutation = useDeleteAppraisal();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionOverride, setSelectionOverride] = useState<Set<string> | null>(null);
   const [inspectedComp, setInspectedComp] = useState<ScoredComp | null>(null);
   const [walkRoute, setWalkRoute] = useState<WalkingRouteResult | null>(null);
 
-  const fetchAppraisal = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await getAppraisal(id);
-      setRecord(d);
-      if (d) {
-        const preSelected: Set<string> = new Set(d.scoredComps.filter((c) => c.isManuallySelected).map((c) => c.id));
-        setSelectedIds(preSelected);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load appraisal');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void fetchAppraisal();
-  }, [fetchAppraisal]);
+  const serverSelectedIds = useMemo(
+    () => new Set(record?.scoredComps.filter((c) => c.isManuallySelected).map((c) => c.id) ?? []),
+    [record],
+  );
+  const selectedIds = selectionOverride ?? serverSelectedIds;
 
   const toggleSelection = useCallback((compId: string) => {
     if (!record) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(compId)) next.delete(compId);
-      else next.add(compId);
-      const reverted = new Set(prev);
-      void updateAppraisalCompSelections(record.id, [...next]).then((ok) => {
-        if (!ok) {
-          setSelectedIds(reverted);
-          alert('Could not save comparable selection. Check you are signed in and try again.');
-        }
-      });
-      return next;
+    const prev = selectionOverride ?? serverSelectedIds;
+    const next = new Set(prev);
+    if (next.has(compId)) next.delete(compId);
+    else next.add(compId);
+    setSelectionOverride(next);
+    void updateAppraisalCompSelections(record.id, [...next]).then((ok) => {
+      if (!ok) {
+        setSelectionOverride(prev);
+        alert('Could not save comparable selection. Check you are signed in and try again.');
+      } else {
+        void queryClient.invalidateQueries({ queryKey: ['appraisals', id] });
+      }
     });
-  }, [record]);
+  }, [record, selectionOverride, serverSelectedIds]);
 
   // Compute walking route when selection changes
   useEffect(() => {
     if (!record || selectedIds.size === 0 || !record.latitude || !record.longitude) {
-      setWalkRoute(null);
       return;
     }
     const subject = { latitude: record.latitude, longitude: record.longitude };
@@ -99,17 +88,18 @@ export default function AppraisalDetailPage() {
       .filter((c) => selectedIds.has(c.id) && c.latitude != null && c.longitude != null)
       .map((c) => ({ latitude: c.latitude!, longitude: c.longitude! }));
 
-    if (selected.length === 0) { setWalkRoute(null); return; }
+    if (selected.length === 0) return;
 
     let cancelled = false;
     void computeWalkingRoute(subject, selected).then((route) => {
       if (!cancelled) setWalkRoute(route);
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; setWalkRoute(null); };
   }, [record, selectedIds]);
 
-  if (loading) return <LoadingSpinner message="Loading appraisal..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchAppraisal(); }} />;
+  if (subLoading || isLoading) return <SkeletonCard count={3} />;
+  if (!isProOrAbove) return <UpgradePrompt feature="Appraisals" />;
+  if (error) return <ErrorMessage message={error.message ?? 'Failed to load appraisal'} onRetry={() => void refetch()} />;
   if (!record) return <ErrorMessage type="notFound" message="Appraisal not found" />;
 
   const est = record.priceEstimate;
@@ -147,9 +137,8 @@ export default function AppraisalDetailPage() {
           message="Delete this appraisal? This cannot be undone."
           confirmLabel="Delete"
           variant="danger"
-          onConfirm={async () => {
-            await deleteAppraisal(record.id);
-            navigate('/app/appraisals');
+          onConfirm={() => {
+            deleteAppraisalMutation.mutate(record.id, { onSuccess: () => navigate('/app/appraisals') });
           }}
           onCancel={() => setShowDeleteConfirm(false)}
         />
@@ -251,7 +240,7 @@ export default function AppraisalDetailPage() {
             <div className={styles.compDetail}>
               <div className={styles.compDetailHeader}>
                 <span className={styles.compDetailAddress}>{inspectedComp.address}</span>
-                <button className={styles.closeBtn} onClick={() => setInspectedComp(null)}>&times;</button>
+                <button className={styles.closeBtn} onClick={() => setInspectedComp(null)} aria-label="Close comparable details">&times;</button>
               </div>
               <div className={styles.compDetailGrid}>
                 <div><span className={styles.label}>Price</span><span className={styles.value}>{formatCompact(inspectedComp.salePrice)}</span></div>
@@ -291,6 +280,14 @@ export default function AppraisalDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Interactive comps map with radius rings and colour-coded pins */}
+      {record.latitude && record.longitude && mappableComps.length > 0 && (
+        <CompsMap
+          subject={{ latitude: record.latitude, longitude: record.longitude, address: record.address }}
+          comps={mappableComps}
+        />
+      )}
 
       {/* Price estimate details */}
       {est && (

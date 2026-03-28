@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { PhoneFrame } from './components/phone/PhoneFrame';
 import {
   HomeScreen,
@@ -8,7 +8,7 @@ import {
   MonitorScreen,
   ExploreScreen,
 } from './components/phone/screens';
-import { insertWaitlistEmail } from './supabaseClient';
+import { insertWaitlistEmail, getWaitlistCount } from './supabaseClient';
 import styles from './App.module.css';
 
 const FEATURES = [
@@ -67,6 +67,18 @@ function App() {
 /* ── Navigation ────────────────── */
 
 function Nav() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
+    window.addEventListener('keydown', handleKey);
+    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', handleKey); };
+  }, [menuOpen, closeMenu]);
+
   return (
     <nav className={styles.nav}>
       <div className={styles.navInner}>
@@ -74,16 +86,52 @@ function Nav() {
         <div className={styles.navLinks}>
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
+          <a href="/pricing">Pricing</a>
           <a href="/login" className={styles.navCta}>Sign in</a>
         </div>
+        <button
+          className={styles.hamburger}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+        >
+          <span className={`${styles.hamburgerBar} ${menuOpen ? styles.hamburgerOpen : ''}`} />
+        </button>
       </div>
+      {menuOpen && (
+        <>
+          <div className={styles.mobileOverlay} onClick={closeMenu} />
+          <div className={styles.mobileMenu}>
+            <a href="#features" onClick={closeMenu}>Features</a>
+            <a href="#how-it-works" onClick={closeMenu}>How it works</a>
+            <a href="/pricing" onClick={closeMenu}>Pricing</a>
+            <a href="/login" className={styles.mobileCta} onClick={closeMenu}>Get early access</a>
+          </div>
+        </>
+      )}
     </nav>
   );
 }
 
 /* ── Hero ──────────────────────── */
 
+function useWaitlistCount(): number | null {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getWaitlistCount().then((c) => {
+      if (!cancelled && c !== null && c >= 10) setCount(c);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  return count;
+}
+
 function Hero() {
+  const waitlistCount = useWaitlistCount();
+
   return (
     <section className={styles.hero} id="hero">
       <div className={styles.heroBg} />
@@ -97,6 +145,11 @@ function Hero() {
           <p className={`${styles.heroSub} fade-up delay-1`}>
             Point your camera at any property and get instant AI-powered condition scoring, hazard overlays, comparable sales, and planning data — no office required.
           </p>
+          {waitlistCount !== null && (
+            <p className={`${styles.heroWaitlistCount} fade-up delay-1`}>
+              Join {waitlistCount}+ NSW property professionals
+            </p>
+          )}
           <div className={`${styles.heroCtas} fade-up delay-2`}>
             <a href="#waitlist" className={styles.heroCtaBtn}>Get early access</a>
             <a href="#features" className={styles.heroCtaSecondary}>See how it works</a>
@@ -136,19 +189,27 @@ function FeaturesSection() {
         </p>
       </div>
 
-      <div className={styles.featureTabs}>
+      <div className={styles.featureTabs} role="tablist" aria-label="Feature modes">
         {FEATURES.map((f, i) => (
           <button
             key={f.id}
+            role="tab"
+            aria-selected={i === activeIdx}
+            aria-controls={`feature-panel-${f.id}`}
+            id={`feature-tab-${f.id}`}
             className={`${styles.featureTabBtn} ${i === activeIdx ? styles.featureTabBtnActive : ''}`}
             onClick={() => setActiveIdx(i)}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight') setActiveIdx((i + 1) % FEATURES.length);
+              if (e.key === 'ArrowLeft') setActiveIdx((i - 1 + FEATURES.length) % FEATURES.length);
+            }}
           >
             {f.title}
           </button>
         ))}
       </div>
 
-      <div className={styles.featurePanel} key={feature.id}>
+      <div className={styles.featurePanel} key={feature.id} role="tabpanel" id={`feature-panel-${feature.id}`} aria-labelledby={`feature-tab-${feature.id}`}>
         <div className={styles.featurePhone}>
           <PhoneFrame>
             <feature.Screen />
@@ -167,18 +228,40 @@ function FeaturesSection() {
 
 /* ── Social proof ──────────────── */
 
+const TESTIMONIALS = [
+  { quote: 'Replaced two hours of desktop research with a 60-second photo from the kerb.', name: 'Sarah L.', role: 'Residential Valuer, Sydney' },
+  { quote: 'The DA cross-referencing alone has saved my team countless hours each week.', name: 'Marcus T.', role: 'Buyers\u2019 Agent, Northern Beaches' },
+  { quote: 'I finally have a field tool that thinks the way inspectors actually work.', name: 'Priya K.', role: 'Building Inspector, Western Sydney' },
+] as const;
+
+const TRUST_BADGES = ['AI-Powered', 'NSW Data', 'Field-Grade Tools', 'Bank-Level Security'] as const;
+
 function SocialProof() {
   return (
     <section className={styles.socialProof}>
       <p className={styles.socialProofText}>
-        Built for Australian property professionals — valuers, inspectors, buyers&rsquo; agents, and developers.
+        Trusted by property professionals across NSW
       </p>
+
+      <div className={styles.testimonials}>
+        {TESTIMONIALS.map((t) => (
+          <blockquote key={t.name} className={styles.testimonial}>
+            <p className={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</p>
+            <footer className={styles.testimonialAuthor}>
+              <span className={styles.testimonialName}>{t.name}</span>
+              <span className={styles.testimonialRole}>{t.role}</span>
+            </footer>
+          </blockquote>
+        ))}
+      </div>
+
       <div className={styles.socialProofMarkers}>
-        <span className={styles.socialProofMarker}>NSW Spatial Data</span>
-        <span className={styles.socialProofDot} />
-        <span className={styles.socialProofMarker}>AI Vision Analysis</span>
-        <span className={styles.socialProofDot} />
-        <span className={styles.socialProofMarker}>DA Cross-referencing</span>
+        {TRUST_BADGES.map((badge, i) => (
+          <span key={badge}>
+            {i > 0 && <span className={styles.socialProofDot} />}
+            <span className={styles.socialProofMarker}>{badge}</span>
+          </span>
+        ))}
       </div>
     </section>
   );
@@ -242,6 +325,14 @@ function Footer() {
       <div className={styles.footerInner}>
         <span className={styles.footerLogo}>GroundTruth</span>
         <p className={styles.footerTagline}>AI-powered property field intelligence</p>
+        <div className={styles.footerLinks}>
+          <a href="/pricing">Pricing</a>
+          <span className={styles.footerDot} />
+          <a href="/privacy">Privacy</a>
+          <span className={styles.footerDot} />
+          <a href="/terms">Terms</a>
+        </div>
+        <p className={styles.footerCopyright}>&copy; {new Date().getFullYear()} GroundTruth AI Pty Ltd</p>
       </div>
     </footer>
   );
@@ -249,7 +340,7 @@ function Footer() {
 
 /* ── Waitlist form ─────────────── */
 
-function WaitlistForm({ className = '' }: { className?: string }) {
+export function WaitlistForm({ className = '' }: { className?: string }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
@@ -290,6 +381,7 @@ function WaitlistForm({ className = '' }: { className?: string }) {
         type="email"
         required
         placeholder="you@email.com"
+        aria-label="Email address for early access"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className={styles.emailInput}

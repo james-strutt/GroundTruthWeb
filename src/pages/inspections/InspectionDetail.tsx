@@ -1,8 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, AlertTriangle, Trash2, X, RefreshCw, Sparkles } from 'lucide-react';
-import { getInspection, updateInspectionReportField, updateInspectionPhotoAnalysis, uploadEditedImage, deleteInspection, deleteInspectionPhoto } from '../../services/api';
+import { updateInspectionReportField, updateInspectionPhotoAnalysis, deleteInspectionPhoto } from '../../services/inspectionService';
+import { uploadEditedImage } from '../../services/imageService';
 import { reanalyseInspectionPhoto } from '../../services/aiService';
+import { useQueryClient } from '@tanstack/react-query';
+import { useInspectionQuery, useDeleteInspection } from '../../hooks/queries/useInspections';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
 import { ImageEditModal } from '../../components/shared/ImageEditModal';
@@ -10,7 +13,7 @@ import { InlineDiff } from '../../components/shared/InlineDiff';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
 import type { Inspection, InspectionPhoto } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
 
@@ -30,9 +33,18 @@ interface PhotoAnalysis {
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [record, setRecord] = useState<Inspection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: queryData, isLoading, error, refetch } = useInspectionQuery(id);
+  const deleteInspectionMutation = useDeleteInspection();
+  const [record, setRecordLocal] = useState<Inspection | null>(null);
+
+  function setRecord(updater: Inspection | null | ((prev: Inspection | null) => Inspection | null)) {
+    setRecordLocal((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (next && id) queryClient.setQueryData(['inspections', id], next);
+      return next;
+    });
+  }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePhotoIdx, setDeletePhotoIdx] = useState<number | null>(null);
   const [isReanalysing, setIsReanalysing] = useState(false);
@@ -43,31 +55,17 @@ export default function InspectionDetailPage() {
   const [aiEditPhotoUri, setAiEditPhotoUri] = useState<string | null>(null);
   const [aiEditedImages, setAiEditedImages] = useState<Record<number, string>>({});
 
-  const fetchInspection = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await getInspection(id);
-      setRecord(d);
-      if (d) {
-        const restored: Record<number, string> = {};
-        d.photos.forEach((p, i) => {
-          const url = (p.analysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
-          if (typeof url === 'string') restored[i] = url;
-        });
-        if (Object.keys(restored).length > 0) setAiEditedImages(restored);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load inspection');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
-    void fetchInspection();
-  }, [fetchInspection]);
+    if (queryData) {
+      setRecord(queryData);
+      const restored: Record<number, string> = {};
+      queryData.photos.forEach((p, i) => {
+        const url = (p.analysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
+        if (typeof url === 'string') restored[i] = url;
+      });
+      if (Object.keys(restored).length > 0) setAiEditedImages(restored);
+    }
+  }, [queryData]);
 
   async function handleReanalyse(): Promise<void> {
     if (!record || record.photos.length === 0 || isReanalysing) return;
@@ -196,8 +194,8 @@ export default function InspectionDetailPage() {
     });
   }
 
-  if (loading) return <LoadingSpinner message="Loading inspection..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchInspection(); }} />;
+  if (isLoading) return <SkeletonCard count={3} />;
+  if (error) return <ErrorMessage message={error.message ?? 'Failed to load inspection'} onRetry={() => void refetch()} />;
   if (!record) return <ErrorMessage type="notFound" message="Inspection not found" />;
 
   const report = record.report;
@@ -223,9 +221,8 @@ export default function InspectionDetailPage() {
           message="Delete this inspection? This cannot be undone."
           confirmLabel="Delete"
           variant="danger"
-          onConfirm={async () => {
-            await deleteInspection(record.id);
-            navigate('/app/inspections');
+          onConfirm={() => {
+            deleteInspectionMutation.mutate(record.id, { onSuccess: () => navigate('/app/inspections') });
           }}
           onCancel={() => setShowDeleteConfirm(false)}
         />

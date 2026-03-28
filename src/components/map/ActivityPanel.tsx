@@ -22,6 +22,15 @@ export const FEATURE_ROUTES: Record<FeatureType, string> = {
   explore: '/app/walks',
 };
 
+/** Single-letter pin icons for colour-blind differentiation on the map. */
+export const PIN_ICONS: Record<FeatureType, string> = {
+  snap: 'S',
+  inspect: 'I',
+  appraise: 'A',
+  monitor: 'M',
+  explore: 'W',
+};
+
 export const FEATURE_LABELS: Record<FeatureType, string> = {
   snap: 'Snap',
   inspect: 'Inspection',

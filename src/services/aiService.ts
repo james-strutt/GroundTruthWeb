@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { sanitiseAIPrompt } from '../utils/sanitise';
 import {
   buildSnapSystemPrompt,
   buildInspectSystemPrompt,
@@ -89,6 +90,55 @@ function compressBlob(blob: Blob): Promise<string> {
 
 
 /**
+ * Get the current user's JWT for authenticated edge function calls.
+ * Falls back to the anon key if no session exists (should not happen in practice).
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+  let bearer = supabaseKey;
+
+  if (supabase) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      bearer = session.access_token;
+    }
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${bearer}`,
+    'apikey': supabaseKey,
+  };
+}
+
+/**
+ * Extract a JSON object from an AI response string.
+ * Handles raw JSON, markdown code fences, and embedded JSON objects.
+ * Returns null if no valid JSON is found.
+ */
+export function extractJsonFromResponse(content: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    // Try extracting JSON from markdown code fences
+    const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch?.[1]) {
+      try {
+        return JSON.parse(fenceMatch[1]) as Record<string, unknown>;
+      } catch { /* not valid JSON */ }
+    }
+    // Try finding a raw JSON object in the content
+    const objectMatch = content.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      try {
+        return JSON.parse(objectMatch[0]) as Record<string, unknown>;
+      } catch { /* not valid JSON */ }
+    }
+    return null;
+  }
+}
+
+/**
  * Call the openai-vision edge function.
  */
 async function callVisionEdgeFunction(
@@ -99,15 +149,11 @@ async function callVisionEdgeFunction(
   if (!supabase) throw new Error('Supabase not configured');
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+  const headers = await getAuthHeaders();
 
   const response = await fetch(`${supabaseUrl}/functions/v1/openai-vision`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-      'apikey': supabaseKey,
-    },
+    headers,
     body: JSON.stringify({ image: base64Image, systemPrompt, userPrompt }),
   });
 
@@ -119,28 +165,7 @@ async function callVisionEdgeFunction(
   const data = await response.json();
 
   const content = (data as { content?: string })?.content ?? '';
-  let parsedJson: Record<string, unknown> | null = null;
-
-  try {
-    parsedJson = JSON.parse(content) as Record<string, unknown>;
-  } catch {
-    // Try extracting JSON from markdown code fences
-    const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenceMatch?.[1]) {
-      try {
-        parsedJson = JSON.parse(fenceMatch[1]) as Record<string, unknown>;
-      } catch { /* not valid JSON */ }
-    }
-    // Try finding a raw JSON object in the content
-    if (!parsedJson) {
-      const objectMatch = content.match(/\{[\s\S]*\}/);
-      if (objectMatch) {
-        try {
-          parsedJson = JSON.parse(objectMatch[0]) as Record<string, unknown>;
-        } catch { /* not valid JSON */ }
-      }
-    }
-  }
+  const parsedJson = extractJsonFromResponse(content);
 
   return { content, parsedJson };
 }
@@ -238,16 +263,12 @@ export async function editImageWithAI(
   const base64 = await photoUrlToBase64(photoUrl);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+  const headers = await getAuthHeaders();
 
   const response = await fetch(`${supabaseUrl}/functions/v1/gemini-image-edit`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-      'apikey': supabaseKey,
-    },
-    body: JSON.stringify({ image: base64, prompt: editPrompt }),
+    headers,
+    body: JSON.stringify({ image: base64, prompt: sanitiseAIPrompt(editPrompt) }),
   });
 
   if (!response.ok) {

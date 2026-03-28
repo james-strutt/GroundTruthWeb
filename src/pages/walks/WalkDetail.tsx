@@ -1,16 +1,20 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Ruler, Trash2, RefreshCw } from 'lucide-react';
 import Map, { Source, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { getWalk, updateWalkField, deleteWalk } from '../../services/api';
+import { updateWalkField } from '../../services/walkService';
 import { reanalyseWalkPhoto } from '../../services/aiService';
+import { useQueryClient } from '@tanstack/react-query';
+import { useWalkQuery, useDeleteWalk } from '../../hooks/queries/useWalks';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { EditableText } from '../../components/shared/EditableText';
 import { InlineDiff } from '../../components/shared/InlineDiff';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { UpgradePrompt } from '../../components/shared/UpgradePrompt';
 import { colours } from '../../theme';
 import type { WalkSession } from '../../types/common';
 import styles from '../snaps/SnapDetail.module.css';
@@ -38,31 +42,27 @@ function scoreColour(score: number): string {
 export default function WalkDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [record, setRecord] = useState<WalkSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isProOrAbove, isLoading: subLoading } = useSubscription();
+  const queryClient = useQueryClient();
+  const { data: queryData, isLoading, error, refetch } = useWalkQuery(id);
+  const deleteWalkMutation = useDeleteWalk();
+  const [record, setRecordLocal] = useState<WalkSession | null>(null);
+
+  function setRecord(updater: WalkSession | null | ((prev: WalkSession | null) => WalkSession | null)) {
+    setRecordLocal((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (next && id) queryClient.setQueryData(['walks', id], next);
+      return next;
+    });
+  }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isReanalysing, setIsReanalysing] = useState(false);
   const [pendingNarrative, setPendingNarrative] = useState<string | null>(null);
   const [pendingStreetScore, setPendingStreetScore] = useState<Record<string, unknown> | null>(null);
 
-  const fetchWalk = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await getWalk(id);
-      setRecord(d);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load walk');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
-    void fetchWalk();
-  }, [fetchWalk]);
+    if (queryData) setRecord(queryData);
+  }, [queryData]);
 
   async function handleReanalyse(): Promise<void> {
     if (!record || record.photos.length === 0 || isReanalysing) return;
@@ -119,8 +119,9 @@ export default function WalkDetailPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner message="Loading walk..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchWalk(); }} />;
+  if (subLoading || isLoading) return <SkeletonCard count={3} />;
+  if (!isProOrAbove) return <UpgradePrompt feature="Walks" />;
+  if (error) return <ErrorMessage message={error.message ?? 'Failed to load walk'} onRetry={() => void refetch()} />;
   if (!record) return <ErrorMessage type="notFound" message="Walk session not found" />;
 
   const routeGeoJson: GeoJSON.Feature = {
@@ -154,9 +155,8 @@ export default function WalkDetailPage() {
           message="Delete this walk session? This cannot be undone."
           confirmLabel="Delete"
           variant="danger"
-          onConfirm={async () => {
-            await deleteWalk(record.id);
-            navigate('/app/walks');
+          onConfirm={() => {
+            deleteWalkMutation.mutate(record.id, { onSuccess: () => navigate('/app/walks') });
           }}
           onCancel={() => setShowDeleteConfirm(false)}
         />

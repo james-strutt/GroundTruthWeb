@@ -18,11 +18,11 @@ export function HomeScreen() {
           <svg className={styles.route} viewBox="0 0 280 500" preserveAspectRatio="none">
             <path
               className={styles.routeGlow}
-              d="M 56,260 L 88,260 Q 100,260 100,248 L 100,187 Q 100,175 112,175 L 188,175"
+              d="M 101,250 L 101,175 L 188,175"
             />
             <path
               className={styles.routeLine}
-              d="M 56,260 L 88,260 Q 100,260 100,248 L 100,187 Q 100,175 112,175 L 188,175"
+              d="M 101,250 L 101,175 L 188,175"
             />
           </svg>
 
@@ -66,7 +66,7 @@ export function HomeScreen() {
               </svg>
             </div>
           </div>
-          <div className={`${styles.pin} ${styles.pinGreen}`} style={{ top: '50%', left: '20%', animationDelay: '1.1s' }}>
+          <div className={`${styles.pin} ${styles.pinGreen}`} style={{ top: '50%', left: '36%', animationDelay: '1.1s' }}>
             <div className={styles.pinIcon}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />

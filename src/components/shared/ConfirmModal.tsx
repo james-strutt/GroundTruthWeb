@@ -60,12 +60,13 @@ export function ConfirmModal({
         ref={modalRef}
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
+        role="alertdialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby="confirm-modal-title"
+        aria-describedby="confirm-modal-message"
       >
-        <h3 className={styles.title}>{title}</h3>
-        <p className={styles.message}>{message}</p>
+        <h3 id="confirm-modal-title" className={styles.title}>{title}</h3>
+        <p id="confirm-modal-message" className={styles.message}>{message}</p>
         <div className={styles.actions}>
           <button ref={cancelRef} className={styles.cancelButton} onClick={onCancel}>
             Cancel

@@ -1,16 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Shield, Lightbulb, AlertTriangle, Trash2, RefreshCw, Sparkles } from 'lucide-react';
-import { getSnap, updateSnapAnalysisField, uploadEditedImage, deleteSnap } from '../../services/api';
+import { updateSnapAnalysisField } from '../../services/snapService';
+import { uploadEditedImage } from '../../services/imageService';
 import { reanalyseSnap } from '../../services/aiService';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSnapQuery, useDeleteSnap } from '../../hooks/queries/useSnaps';
 import { EditableText } from '../../components/shared/EditableText';
 import { ClickableImage } from '../../components/shared/ClickableImage';
 import { ImageEditModal } from '../../components/shared/ImageEditModal';
+import { ImageCompareSlider } from '../../components/shared/ImageCompareSlider';
 import { InlineDiff } from '../../components/shared/InlineDiff';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { SpatialRiskBadges } from '../../components/shared/SpatialRiskBadges';
+import { ParcelInfo } from '../../components/shared/ParcelInfo';
 import { colours } from '../../theme';
 import type { Snap, SnapAnalysis } from '../../types/common';
 import styles from './SnapDetail.module.css';
@@ -18,34 +24,32 @@ import styles from './SnapDetail.module.css';
 export default function SnapDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [snap, setSnap] = useState<Snap | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: queryData, isLoading, error, refetch } = useSnapQuery(id);
+  const deleteSnapMutation = useDeleteSnap();
+  const [snap, setSnapLocal] = useState<Snap | null>(null);
+
+  /** Update local state AND the React Query cache so edits persist across navigation */
+  function setSnap(updater: Snap | null | ((prev: Snap | null) => Snap | null)) {
+    setSnapLocal((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (next && id) queryClient.setQueryData(['snaps', id], next);
+      return next;
+    });
+  }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isReanalysing, setIsReanalysing] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState<Record<string, unknown> | null>(null);
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [aiEditedImageUrl, setAiEditedImageUrl] = useState<string | null>(null);
 
-  const fetchSnap = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getSnap(id);
-      setSnap(data);
-      const persisted = (data?.aiAnalysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
-      if (typeof persisted === 'string') setAiEditedImageUrl(persisted);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load snap');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
-    void fetchSnap();
-  }, [fetchSnap]);
+    if (queryData) {
+      setSnap(queryData);
+      const persisted = (queryData.aiAnalysis as Record<string, unknown> | null)?.['aiEditedPhotoUrl'];
+      if (typeof persisted === 'string') setAiEditedImageUrl(persisted);
+    }
+  }, [queryData]);
 
   async function handleReanalyse() {
     if (!snap?.photoUrl || isReanalysing) return;
@@ -106,8 +110,8 @@ export default function SnapDetailPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner message="Loading snap..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchSnap(); }} />;
+  if (isLoading) return <SkeletonCard count={3} />;
+  if (error) return <ErrorMessage message={error.message ?? 'Failed to load snap'} onRetry={() => void refetch()} />;
   if (!snap) return <ErrorMessage type="notFound" message="Snap not found" />;
 
   const analysis = snap.aiAnalysis;
@@ -133,27 +137,39 @@ export default function SnapDetailPage() {
           message="Delete this snap? This cannot be undone."
           confirmLabel="Delete"
           variant="danger"
-          onConfirm={async () => {
-            await deleteSnap(snap.id);
-            navigate('/app/snaps');
+          onConfirm={() => {
+            deleteSnapMutation.mutate(snap.id, { onSuccess: () => navigate('/app/snaps') });
           }}
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
 
       <div className={styles.heroSection}>
-        {snap.photoUrl && (
-          <div className={styles.photoContainer}>
-            <ClickableImage src={snap.photoUrl} alt={snap.address} className={styles.photo} />
+        {snap.photoUrl && aiEditedImageUrl ? (
+          <div className={styles.compareContainer}>
+            <ImageCompareSlider
+              beforeSrc={snap.photoUrl}
+              afterSrc={aiEditedImageUrl}
+              beforeLabel="Original"
+              afterLabel="AI Generated"
+            />
           </div>
-        )}
-        {aiEditedImageUrl && (
-          <div className={styles.photoContainer} style={{ position: 'relative' }}>
-            <ClickableImage src={aiEditedImageUrl} alt={`${snap.address} (AI edited)`} className={styles.photo} />
-            <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', background: 'rgba(212,101,59,0.9)', color: '#fff', fontFamily: 'var(--font-data)', fontSize: '0.625rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              AI Generated
-            </span>
-          </div>
+        ) : (
+          <>
+            {snap.photoUrl && (
+              <div className={styles.photoContainer}>
+                <ClickableImage src={snap.photoUrl} alt={snap.address} className={styles.photo} />
+              </div>
+            )}
+            {aiEditedImageUrl && (
+              <div className={styles.photoContainer} style={{ position: 'relative' }}>
+                <ClickableImage src={aiEditedImageUrl} alt={`${snap.address} (AI edited)`} className={styles.photo} />
+                <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', background: 'rgba(212,101,59,0.9)', color: '#fff', fontFamily: 'var(--font-data)', fontSize: '0.625rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  AI Generated
+                </span>
+              </div>
+            )}
+          </>
         )}
         <div className={styles.heroInfo}>
           <h1 className={styles.address}>{snap.address}</h1>
@@ -162,6 +178,8 @@ export default function SnapDetailPage() {
             <span className={styles.dot} />
             {new Date(snap.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
+          <SpatialRiskBadges latitude={snap.latitude} longitude={snap.longitude} />
+          <ParcelInfo latitude={snap.latitude} longitude={snap.longitude} />
         </div>
       </div>
 

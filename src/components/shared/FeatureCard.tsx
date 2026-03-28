@@ -45,7 +45,7 @@ export function FeatureCard({
     <button className={styles.card} onClick={() => navigate(to)}>
       {photoUrl && (
         <div className={styles.thumbnail}>
-          <img src={photoUrl} alt="" className={styles.thumbnailImg} />
+          <img src={photoUrl} alt="" className={styles.thumbnailImg} loading="lazy" width={80} height={80} />
         </div>
       )}
 

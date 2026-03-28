@@ -16,12 +16,13 @@ interface EditableTextProps {
   multiline?: boolean;
   placeholder?: string;
   className?: string;
+  maxLength?: number;
 }
 
 const hasVoiceSupport = typeof window !== 'undefined' &&
   ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
-export function EditableText({ value, onSave, multiline = false, placeholder, className }: EditableTextProps) {
+export function EditableText({ value, onSave, multiline = false, placeholder, className, maxLength }: EditableTextProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -219,6 +220,7 @@ export function EditableText({ value, onSave, multiline = false, placeholder, cl
             onKeyDown={handleKeyDown}
             disabled={saving}
             rows={4}
+            maxLength={maxLength ?? 5000}
           />
         ) : (
           <input
@@ -228,6 +230,7 @@ export function EditableText({ value, onSave, multiline = false, placeholder, cl
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={saving}
+            maxLength={maxLength ?? 2000}
           />
         )}
         {recordingIndicator}

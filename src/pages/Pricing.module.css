@@ -1,0 +1,294 @@
+.page {
+  min-height: 100vh;
+  background: var(--page-bg);
+  padding: 4rem 1.5rem;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-family: var(--font-brand);
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.toggleLabel {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.toggleLabelActive {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.toggleSwitch {
+  width: 48px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 13px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggleSwitch[data-active="true"] {
+  background: var(--accent);
+}
+
+.toggleKnob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.toggleSwitch[data-active="true"] .toggleKnob {
+  transform: translateX(22px);
+}
+
+.saveBadge {
+  font-family: var(--font-data);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--terracotta), #b5472a);
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+  margin-left: 0.5rem;
+  box-shadow: 0 2px 8px rgba(212, 101, 59, 0.35);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(212, 101, 59, 0.35); }
+  50% { box-shadow: 0 2px 16px rgba(212, 101, 59, 0.55); }
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cardPopular {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 32px rgba(139, 92, 246, 0.15);
+  position: relative;
+}
+
+.popularBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: var(--accent);
+  padding: 0.25rem 1rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.tierName {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.price {
+  font-family: var(--font-brand);
+  font-size: 2.5rem;
+  color: var(--text-primary);
+}
+
+.period {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.cardDesc {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.features li {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--text-secondary, var(--text-primary));
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+.features li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cardCta {
+  display: block;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.cardCta:hover {
+  opacity: 0.85;
+}
+
+.ctaPrimary {
+  background: var(--accent);
+  color: white;
+}
+
+.ctaSecondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.faq {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.faqTitle {
+  font-family: var(--font-brand);
+  font-size: 1.75rem;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.faqItem {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.25rem 0;
+}
+
+.faqQuestion {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+}
+
+.faqAnswer {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-top: 0.75rem;
+  padding-right: 2rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 2rem;
+}
+
+.backLink:hover {
+  color: var(--text-primary);
+}

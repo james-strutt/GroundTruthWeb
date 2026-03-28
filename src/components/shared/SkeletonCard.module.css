@@ -1,0 +1,50 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md, 0.75rem);
+  padding: var(--space-lg, 1rem);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+}
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm, 8px);
+  background: rgba(255, 255, 255, 0.06);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.line {
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.lineWide {
+  width: 70%;
+}
+
+.lineNarrow {
+  width: 45%;
+  animation-delay: 0.15s;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

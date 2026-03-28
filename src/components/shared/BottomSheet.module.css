@@ -1,0 +1,81 @@
+/* Desktop: passthrough, children render normally */
+.desktopPassthrough {
+  display: contents;
+}
+
+/* Mobile bottom sheet overlay */
+.sheet {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktopPassthrough {
+    display: none;
+  }
+
+  .sheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    background: #000000;
+    border-top: 2px solid var(--terracotta);
+    border-radius: 16px 16px 0 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    max-height: 90dvh;
+  }
+
+  .sheetDragging {
+    transition: none;
+  }
+
+  .handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem 0.35rem;
+    cursor: grab;
+    touch-action: none;
+    flex-shrink: 0;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .handle:active {
+    cursor: grabbing;
+  }
+
+  .handleBar {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(212, 101, 59, 0.5);
+  }
+
+  .titleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .title {
+    font-family: var(--font-brand);
+    font-size: 0.9375rem;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    min-height: 0;
+  }
+}

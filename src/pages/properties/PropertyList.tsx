@@ -1,67 +1,82 @@
 /**
- * Properties page — shows all properties grouped by address
- * with activity counts per feature type.
+ * Properties page — shows all properties with activity counts per feature type.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building, Camera, ClipboardCheck, BarChart3, Eye, MapPin, Calendar } from 'lucide-react';
-import { listProperties } from '../../services/api';
+import { useAllPropertiesQuery } from '../../hooks/queries/useProperties';
 import { PageHeader } from '../../components/shared/PageHeader';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { GroupedProperty } from '../../types/common';
+import { DataTable, type Column } from '../../components/shared/DataTable';
+import { ViewToggle } from '../../components/shared/ViewToggle';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { exportToCsv } from '../../utils/csvExport';
+import { formatDate } from '../../utils/formatDate';
+import type { PropertySummary } from '../../types/common';
 import styles from './PropertyList.module.css';
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${d.getDate()} ${d.toLocaleDateString('en-AU', { month: 'short' })} ${String(d.getFullYear()).slice(2)}`;
-}
+const TABLE_COLUMNS: Column<PropertySummary>[] = [
+  { key: 'address', label: 'Address', sortable: true },
+  { key: 'suburb', label: 'Suburb', sortable: true },
+  { key: 'totalRecords', label: 'Records', sortable: true },
+  { key: 'lastActivityAt', label: 'Last Activity', sortable: true, render: (row) => formatDate(row.lastActivityAt) },
+];
+
+const CSV_COLUMNS = [
+  { key: 'address', label: 'Address' },
+  { key: 'suburb', label: 'Suburb' },
+  { key: 'totalRecords', label: 'Records' },
+  { key: 'lastActivityAt', label: 'Last Activity' },
+];
 
 export default function PropertyListPage() {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState<GroupedProperty[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: properties = [], isLoading, error, refetch } = useAllPropertiesQuery();
+  const [view, setView] = useState<'card' | 'table'>('card');
 
-  const fetchProperties = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await listProperties();
-      setProperties(d);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load properties');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchProperties();
-  }, [fetchProperties]);
+  const handleExport = useCallback(() => {
+    const rows = properties.map((p) => ({
+      address: p.address,
+      suburb: p.suburb ?? '',
+      totalRecords: String(p.totalRecords),
+      lastActivityAt: formatDate(p.lastActivityAt),
+    }));
+    exportToCsv('properties', CSV_COLUMNS, rows);
+  }, [properties]);
 
   return (
     <div>
-      <PageHeader icon={<Building size={22} />} title="Properties" count={properties.length} />
-      {loading ? (
-        <LoadingSpinner message="Loading properties..." />
+      <PageHeader
+        icon={<Building size={22} />}
+        title="Properties"
+        count={properties.length}
+        actions={<ViewToggle view={view} onViewChange={setView} onExport={handleExport} />}
+      />
+      {isLoading ? (
+        <SkeletonCard count={4} />
       ) : error ? (
-        <ErrorMessage message={error} onRetry={() => { setError(null); void fetchProperties(); }} />
+        <ErrorMessage message={error instanceof Error ? error.message : 'Failed to load properties'} onRetry={() => void refetch()} />
       ) : properties.length === 0 ? (
         <p className={styles.empty}>No properties yet. Capture data on the iOS app and sync to cloud.</p>
+      ) : view === 'table' ? (
+        <DataTable<PropertySummary>
+          columns={TABLE_COLUMNS}
+          data={properties}
+          keyField="id"
+          onRowClick={(row) => navigate(`/app/properties/${row.id}`)}
+        />
       ) : (
         <div className={styles.grid}>
           {properties.map((p) => (
             <button
-              key={p.normalisedAddress}
+              key={p.id}
               className={styles.card}
-              onClick={() => navigate(`/app/properties/${encodeURIComponent(p.normalisedAddress)}`)}
+              onClick={() => navigate(`/app/properties/${p.id}`)}
             >
               {p.thumbnailUrl && (
                 <div className={styles.thumbnail}>
-                  <img src={p.thumbnailUrl} alt="" className={styles.thumbnailImg} />
+                  <img src={p.thumbnailUrl} alt="" className={styles.thumbnailImg} loading="lazy" width={64} height={64} />
                 </div>
               )}
               <div className={styles.content}>
@@ -70,7 +85,7 @@ export default function PropertyListPage() {
                   <span className={styles.address}>{p.address}</span>
                 </div>
                 <div className={styles.metaRow}>
-                  <span className={styles.suburb}>{p.suburb}</span>
+                  <span className={styles.suburb}>{p.suburb ?? ''}</span>
                   <span className={styles.sep}>-</span>
                   <Calendar size={11} className={styles.icon} />
                   <span className={styles.date}>{formatDate(p.lastActivityAt)}</span>

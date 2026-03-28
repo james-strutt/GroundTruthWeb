@@ -1,0 +1,105 @@
+.container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(212, 101, 59, 0.3);
+  user-select: none;
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+.imageWrap {
+  position: relative;
+  width: 100%;
+}
+
+.afterImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.beforeClip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.beforeImage {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Vertical divider line */
+.divider {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--warm-white);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+/* Drag handle */
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--warm-white);
+  border: 2px solid var(--terracotta);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.handleArrows {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--terracotta);
+}
+
+/* Labels */
+.labelBefore {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--warm-white);
+  background: rgba(28, 25, 23, 0.7);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.labelAfter {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--warm-white);
+  background: rgba(212, 101, 59, 0.85);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  z-index: 1;
+}

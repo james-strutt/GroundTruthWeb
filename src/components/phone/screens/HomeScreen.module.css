@@ -67,8 +67,8 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.2;
-  stroke-dasharray: 210;
-  stroke-dashoffset: 210;
+  stroke-dasharray: 162;
+  stroke-dashoffset: 162;
   animation: drawRoute 1.6s ease-out 0.8s both;
 }
 
@@ -78,8 +78,8 @@
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 210;
-  stroke-dashoffset: 210;
+  stroke-dasharray: 162;
+  stroke-dashoffset: 162;
   animation: drawRoute 1.6s ease-out 0.8s both;
 }
 

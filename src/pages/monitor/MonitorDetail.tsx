@@ -1,13 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, AlertCircle, Trash2 } from 'lucide-react';
-import { getWatched, deleteWatched } from '../../services/api';
+import { useWatchedItemQuery, useDeleteWatched } from '../../hooks/queries/useMonitor';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { ClickableImage } from '../../components/shared/ClickableImage';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { ConfirmModal } from '../../components/shared/ConfirmModal';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
-import type { WatchedProperty } from '../../types/common';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
+import { UpgradePrompt } from '../../components/shared/UpgradePrompt';
 import styles from '../snaps/SnapDetail.module.css';
 
 const SEVERITY_COLOURS: Record<string, string> = { none: '#57534E', minor: '#B0A08A', moderate: '#EA580C', major: '#DC2626', demolition: '#991B1B' };
@@ -15,31 +16,14 @@ const SEVERITY_COLOURS: Record<string, string> = { none: '#57534E', minor: '#B0A
 export default function MonitorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [record, setRecord] = useState<WatchedProperty | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isProOrAbove, isLoading: subLoading } = useSubscription();
+  const { data: record, isLoading, error, refetch } = useWatchedItemQuery(id);
+  const deleteWatchedMutation = useDeleteWatched();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const fetchWatched = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await getWatched(id);
-      setRecord(d);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load property');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void fetchWatched();
-  }, [fetchWatched]);
-
-  if (loading) return <LoadingSpinner message="Loading property..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => { setError(null); void fetchWatched(); }} />;
+  if (subLoading || isLoading) return <SkeletonCard count={3} />;
+  if (!isProOrAbove) return <UpgradePrompt feature="Monitor" />;
+  if (error) return <ErrorMessage message={error.message ?? 'Failed to load property'} onRetry={() => void refetch()} />;
   if (!record) return <ErrorMessage type="notFound" message="Property not found" />;
 
   return (
@@ -60,9 +44,8 @@ export default function MonitorDetailPage() {
           message="Delete this monitored property? This cannot be undone."
           confirmLabel="Delete"
           variant="danger"
-          onConfirm={async () => {
-            await deleteWatched(record.id);
-            navigate('/app/monitor');
+          onConfirm={() => {
+            deleteWatchedMutation.mutate(record.id, { onSuccess: () => navigate('/app/monitor') });
           }}
           onCancel={() => setShowDeleteConfirm(false)}
         />

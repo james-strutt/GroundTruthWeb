@@ -4,21 +4,23 @@
  * under a unified header with status and notes.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   MapPin, Camera, ClipboardCheck, BarChart3, Eye, Layout,
 } from 'lucide-react';
-import {
-  getProperty, getDirectory, getPropertyActivities, updateProperty,
-} from '../../services/api';
+import { updateProperty } from '../../services/propertyService';
+import { usePropertyQuery, usePropertyActivitiesQuery } from '../../hooks/queries/useProperties';
+import { useDirectoryQuery } from '../../hooks/queries/useDirectories';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { FeatureCard } from '../../components/shared/FeatureCard';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
+import { NearbyDAs } from '../../components/shared/NearbyDAs';
+import { SpatialRiskBadges } from '../../components/shared/SpatialRiskBadges';
 import { colours } from '../../theme';
 import type {
-  Property, Directory, PropertyStatus,
+  Property, PropertyStatus,
   Snap, Inspection, Appraisal, WatchedProperty,
 } from '../../types/common';
 import styles from './PropertyDetail.module.css';
@@ -56,66 +58,23 @@ function statusLabel(status: PropertyStatus): string {
 }
 
 export default function PropertyDetailPage() {
-  const { propId, address: encodedAddress } = useParams<{
+  const { propId, id } = useParams<{
     propId?: string;
     dirId?: string;
-    address?: string;
+    id?: string;
   }>();
 
-  const [property, setProperty] = useState<Property | null>(null);
-  const [directory, setDirectory] = useState<Directory | null>(null);
-  const [activities, setActivities] = useState<{
-    snaps: Snap[];
-    inspections: Inspection[];
-    appraisals: Appraisal[];
-    watched: WatchedProperty[];
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const propertyId = propId ?? id;
+
+  const { data: property, isLoading: propertyLoading, error: propertyError, refetch: refetchProperty } = usePropertyQuery(propertyId);
+  const { data: activities, isLoading: activitiesLoading } = usePropertyActivitiesQuery(propertyId);
+  const { data: directory } = useDirectoryQuery(property?.directoryId);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  const isLegacyRoute = !propId && !!encodedAddress;
+  const isLoading = propertyLoading || activitiesLoading;
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (propId) {
-        const prop = await getProperty(propId);
-        if (!prop) { setError('Property not found'); setLoading(false); return; }
-        setProperty(prop);
-
-        const [dir, acts] = await Promise.all([
-          getDirectory(prop.directoryId),
-          getPropertyActivities(propId),
-        ]);
-        setDirectory(dir);
-        setActivities(acts);
-      } else if (isLegacyRoute) {
-        const { getPropertyRecords } = await import('../../services/api');
-        const normalisedAddress = decodeURIComponent(encodedAddress ?? '');
-        const acts = await getPropertyRecords(normalisedAddress);
-        setActivities(acts);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load property');
-    } finally {
-      setLoading(false);
-    }
-  }, [propId, isLegacyRoute, encodedAddress]);
-
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
-
-  if (loading) return <LoadingSpinner message="Loading property..." />;
-  if (error) return <ErrorMessage message={error} type="notFound" />;
-
-  /* Legacy address-based route: simplified view without tabs */
-  if (isLegacyRoute && activities) {
-    return <LegacyPropertyView activities={activities} encodedAddress={encodedAddress ?? ''} />;
-  }
-
+  if (isLoading) return <SkeletonCard count={3} />;
+  if (propertyError) return <ErrorMessage message={propertyError.message ?? 'Failed to load property'} onRetry={() => void refetchProperty()} />;
   if (!property || !activities) return <ErrorMessage message="Property not found" type="notFound" />;
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode; count: number }[] = [
@@ -174,7 +133,7 @@ export default function PropertyDetailPage() {
         <OverviewTab
           property={property}
           activities={activities}
-          onPropertyUpdated={() => void fetchData()}
+          onPropertyUpdated={() => void refetchProperty()}
         />
       )}
       {activeTab === 'snaps' && (
@@ -216,6 +175,8 @@ function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabPro
     + activities.appraisals.length
     + activities.watched.length;
 
+  const hasNoActivity = totalRecords === 0;
+
   async function handleSaveNotes() {
     setSaving(true);
     setSaveError(null);
@@ -244,6 +205,12 @@ function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabPro
           <div className={styles.overviewValue}>{totalRecords}</div>
         </div>
       </div>
+
+      {hasNoActivity && (
+        <p className={styles.emptyTab} style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          No activity yet for this property. Capture data on the iOS app to see it here.
+        </p>
+      )}
 
       <div className={styles.overviewCardFull}>
         <div className={styles.overviewLabel}>Activity Completeness</div>
@@ -308,6 +275,17 @@ function OverviewTab({ property, activities, onPropertyUpdated }: OverviewTabPro
           </div>
         )}
       </div>
+
+      {property.latitude !== null && property.longitude !== null && (
+        <>
+          <div className={styles.overviewCardFull} style={{ marginTop: '0.75rem' }}>
+            <div className={styles.overviewLabel}>Spatial Risks</div>
+            <SpatialRiskBadges latitude={property.latitude} longitude={property.longitude} />
+          </div>
+
+          <NearbyDAs latitude={property.latitude} longitude={property.longitude} />
+        </>
+      )}
     </div>
   );
 }
@@ -406,144 +384,3 @@ function MonitorTab({ watched }: { watched: WatchedProperty[] }) {
   );
 }
 
-/* ---------- Legacy view (address-based route) ---------- */
-
-interface LegacyPropertyViewProps {
-  activities: {
-    snaps: Snap[];
-    inspections: Inspection[];
-    appraisals: Appraisal[];
-    watched: WatchedProperty[];
-  };
-  encodedAddress: string;
-}
-
-function LegacyPropertyView({ activities, encodedAddress }: LegacyPropertyViewProps) {
-  const normalisedAddress = decodeURIComponent(encodedAddress);
-
-  const displayAddress = activities.snaps[0]?.address
-    ?? activities.inspections[0]?.address
-    ?? activities.appraisals[0]?.address
-    ?? activities.watched[0]?.address
-    ?? normalisedAddress;
-
-  const displaySuburb = activities.snaps[0]?.suburb
-    ?? activities.inspections[0]?.suburb
-    ?? activities.appraisals[0]?.suburb
-    ?? activities.watched[0]?.suburb
-    ?? '';
-
-  const totalRecords = activities.snaps.length
-    + activities.inspections.length
-    + activities.appraisals.length
-    + activities.watched.length;
-
-  return (
-    <div className={styles.page}>
-      <Breadcrumb segments={[
-        { label: 'Dashboard', path: '/app' },
-        { label: 'Properties', path: '/app/properties' },
-        { label: displayAddress },
-      ]} />
-
-      <div className={styles.propertyHeader}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.address}>{displayAddress}</h1>
-          <div className={styles.meta}>
-            <MapPin size={14} /> {displaySuburb}
-            <span className={styles.dot} />
-            {totalRecords} record{totalRecords !== 1 ? 's' : ''}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {activities.snaps.length > 0 && (
-          <section>
-            <h2 className={styles.sectionTitle} style={{ color: colours.terracotta }}>
-              <Camera size={18} /> Snaps ({activities.snaps.length})
-            </h2>
-            <div className={styles.activityGrid}>
-              {activities.snaps.map((s) => (
-                <FeatureCard
-                  key={s.id}
-                  to={`/app/snaps/${s.id}`}
-                  address={s.address}
-                  suburb={s.suburb}
-                  date={s.createdAt}
-                  photoUrl={s.photoUrl}
-                  metric={s.aiAnalysis?.condition ?? undefined}
-                  metricLabel="Condition"
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activities.inspections.length > 0 && (
-          <section>
-            <h2 className={styles.sectionTitle} style={{ color: '#3B82F6' }}>
-              <ClipboardCheck size={18} /> Inspections ({activities.inspections.length})
-            </h2>
-            <div className={styles.activityGrid}>
-              {activities.inspections.map((i) => (
-                <FeatureCard
-                  key={i.id}
-                  to={`/app/inspections/${i.id}`}
-                  address={i.address}
-                  suburb={i.suburb}
-                  date={i.createdAt}
-                  metric={i.overallScore ? `${i.overallScore}/10` : undefined}
-                  metricLabel="Score"
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activities.appraisals.length > 0 && (
-          <section>
-            <h2 className={styles.sectionTitle} style={{ color: colours.amber }}>
-              <BarChart3 size={18} /> Appraisals ({activities.appraisals.length})
-            </h2>
-            <div className={styles.activityGrid}>
-              {activities.appraisals.map((a) => (
-                <FeatureCard
-                  key={a.id}
-                  to={`/app/appraisals/${a.id}`}
-                  address={a.address}
-                  suburb={a.suburb}
-                  date={a.createdAt}
-                  metric={a.priceEstimate ? formatCompact(a.priceEstimate.estimatedValue) : undefined}
-                  metricLabel="Estimate"
-                  metricColour={colours.terracotta}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activities.watched.length > 0 && (
-          <section>
-            <h2 className={styles.sectionTitle} style={{ color: colours.copper }}>
-              <Eye size={18} /> Monitor ({activities.watched.length})
-            </h2>
-            <div className={styles.activityGrid}>
-              {activities.watched.map((w) => (
-                <FeatureCard
-                  key={w.id}
-                  to={`/app/monitor/${w.id}`}
-                  address={w.address}
-                  suburb={w.suburb}
-                  date={w.lastVisitedAt}
-                  metric={`${w.changes.length} change${w.changes.length !== 1 ? 's' : ''}`}
-                  metricLabel={`${w.visitCount} visit${w.visitCount !== 1 ? 's' : ''}`}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
-    </div>
-  );
-}

@@ -3,35 +3,47 @@
  * 3D buildings toggle, and an activity feed sidebar.
  */
 
-import { useEffect, useState, useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Map, { Source, Layer, NavigationControl } from 'react-map-gl/mapbox';
+import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/mapbox';
 import type { MapRef, MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Building2, ChevronUp, ChevronDown } from 'lucide-react';
-import { getAllPins, getRecentActivity, getWalkRoutes } from '../services/api';
+import { Building2, MapPin as MapPinIcon, ExternalLink } from 'lucide-react';
+import { useDashboardData } from '../hooks/queries/useDashboard';
 import { LayerControl } from '../components/map/LayerControl';
 import { DEFAULT_LAYERS, type SpatialLayer } from '../components/map/layerConstants';
 import { MapLegend } from '../components/map/MapLegend';
-import { ActivityPanel, PIN_COLOURS, FEATURE_ROUTES, FEATURE_LABELS } from '../components/map/ActivityPanel';
+import { ActivityPanel, PIN_COLOURS, PIN_ICONS, FEATURE_ROUTES, FEATURE_LABELS } from '../components/map/ActivityPanel';
+import { BottomSheet } from '../components/shared/BottomSheet';
+import { EmptyState } from '../components/shared/EmptyState';
 import { fetchDAsInBounds, type DA } from '../services/daService';
 import { MeasureTools } from '../components/map/MeasureTools';
 import { useMapMeasure } from '../hooks/useMapMeasure';
 import { fetchTrainStationsInBounds, fetchAllRailwayLines, type TrainStation } from '../services/trainStationService';
-import type { MapPin, ActivityItem, FeatureType } from '../types/common';
+import {
+  fetchBushfireProneAreas,
+  fetchFloodProneAreas,
+  fetchHeritageItems,
+  fetchContaminatedLand,
+  fetchAcidSulfateSoils,
+} from '../services/nswSpatialService';
+import type { FeatureType } from '../types/common';
 import styles from './Dashboard.module.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '';
 
 const BUILDINGS_LAYER_ID = 'gt-3d-buildings';
 
+interface DaPopupData {
+  longitude: number;
+  latitude: number;
+  da: DA;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const mapRef = useRef<MapRef>(null);
-  const [pins, setPins] = useState<MapPin[]>([]);
-  const [walkRoutes, setWalkRoutes] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { pins, activity, walkRoutes, isLoading } = useDashboardData();
   const [buildings3d, setBuildings3d] = useState(false);
   const [spatialLayers, setSpatialLayers] = useState<SpatialLayer[]>(DEFAULT_LAYERS);
   const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null);
@@ -50,19 +62,24 @@ export default function DashboardPage() {
     clearMeasure: handleClearMeasure,
     isMeasuring,
   } = measure;
-  const [panelRatio, setPanelRatio] = useState(0.35);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const draggingRef = useRef(false);
-  const dragMovedRef = useRef(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
-  const prevRatioRef = useRef(0.35);
 
   const [daPoints, setDaPoints] = useState<DA[]>([]);
   const [trainStations, setTrainStations] = useState<TrainStation[]>([]);
   const [railwayGeoJson, setRailwayGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
   const daDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const stationsDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // NSW spatial GeoJSON layers
+  const emptyGeoJson: GeoJSON.FeatureCollection = useMemo(() => ({ type: 'FeatureCollection', features: [] }), []);
+  const [bushfireGeoJson, setBushfireGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const [floodGeoJson, setFloodGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const [heritageGeoJson, setHeritageGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const [contaminatedGeoJson, setContaminatedGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const [acidSulfateGeoJson, setAcidSulfateGeoJson] = useState<GeoJSON.FeatureCollection>({ type: 'FeatureCollection', features: [] });
+  const nswSpatialDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const [daPopup, setDaPopup] = useState<DaPopupData | null>(null);
 
   const isDaLayerActive = spatialLayers.some((l) => l.id === 'das' && l.visible);
 
@@ -117,16 +134,58 @@ export default function DashboardPage() {
     void fetchAllRailwayLines().then(setRailwayGeoJson).catch((err: unknown) => console.error('Failed to fetch railway lines:', err));
   }, [isRailwayLayerActive]);
 
-  const stationsGeoJson: GeoJSON.FeatureCollection = {
+  // NSW spatial GeoJSON layers — fetch on bounds change when visible
+  const nswSpatialConfig = useMemo(() => [
+    { id: 'bushfire', fetch: fetchBushfireProneAreas, set: setBushfireGeoJson },
+    { id: 'flood', fetch: fetchFloodProneAreas, set: setFloodGeoJson },
+    { id: 'heritage', fetch: fetchHeritageItems, set: setHeritageGeoJson },
+    { id: 'contamination', fetch: fetchContaminatedLand, set: setContaminatedGeoJson },
+    { id: 'acid-sulfate', fetch: fetchAcidSulfateSoils, set: setAcidSulfateGeoJson },
+  ], []);
+
+  const activeNswLayers = useMemo(
+    () => nswSpatialConfig.filter((cfg) => spatialLayers.some((l) => l.id === cfg.id && l.visible)),
+    [spatialLayers, nswSpatialConfig],
+  );
+
+  useEffect(() => {
+    if (activeNswLayers.length === 0 || !mapBounds) {
+      // Clear data for inactive layers
+      for (const cfg of nswSpatialConfig) {
+        const isActive = spatialLayers.some((l) => l.id === cfg.id && l.visible);
+        if (!isActive) cfg.set(emptyGeoJson);
+      }
+      return;
+    }
+    if (nswSpatialDebounceRef.current) clearTimeout(nswSpatialDebounceRef.current);
+    nswSpatialDebounceRef.current = setTimeout(() => {
+      for (const cfg of activeNswLayers) {
+        void cfg.fetch(mapBounds)
+          .then(cfg.set)
+          .catch((err: unknown) => console.error(`Failed to fetch ${cfg.id} layer:`, err));
+      }
+    }, 600);
+    return () => { if (nswSpatialDebounceRef.current) clearTimeout(nswSpatialDebounceRef.current); };
+  }, [activeNswLayers, mapBounds, nswSpatialConfig, spatialLayers, emptyGeoJson]);
+
+  const nswGeoJsonMap: Record<string, GeoJSON.FeatureCollection> = useMemo(() => ({
+    bushfire: bushfireGeoJson,
+    flood: floodGeoJson,
+    heritage: heritageGeoJson,
+    contamination: contaminatedGeoJson,
+    'acid-sulfate': acidSulfateGeoJson,
+  }), [bushfireGeoJson, floodGeoJson, heritageGeoJson, contaminatedGeoJson, acidSulfateGeoJson]);
+
+  const stationsGeoJson: GeoJSON.FeatureCollection = useMemo(() => ({
     type: 'FeatureCollection',
     features: trainStations.map((s, i) => ({
       type: 'Feature' as const,
       geometry: { type: 'Point' as const, coordinates: [s.longitude, s.latitude] },
       properties: { id: `station-${i}`, name: s.name },
     })),
-  };
+  }), [trainStations]);
 
-  const daGeoJson: GeoJSON.FeatureCollection = {
+  const daGeoJson: GeoJSON.FeatureCollection = useMemo(() => ({
     type: 'FeatureCollection',
     features: daPoints.map((da) => ({
       type: 'Feature' as const,
@@ -141,7 +200,7 @@ export default function DashboardPage() {
         label: `${da.address}${da.type ? ' \u00B7 ' + da.type : ''}`,
       },
     })),
-  };
+  }), [daPoints]);
 
   const handleLayerToggle = useCallback((layerId: string) => {
     setSpatialLayers((prev) => prev.map((l) =>
@@ -155,31 +214,14 @@ export default function DashboardPage() {
     ));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const [p, a, w] = await Promise.all([getAllPins(), getRecentActivity(), getWalkRoutes()]);
-        if (!cancelled) {
-          setPins(p);
-          setActivity(a);
-          setWalkRoutes({
-            type: 'FeatureCollection',
-            features: w.map((walk) => ({
-              type: 'Feature' as const,
-              properties: { id: walk.id, title: walk.title },
-              geometry: { type: 'LineString' as const, coordinates: walk.route },
-            })),
-          });
-          setIsLoading(false);
-        }
-      } catch (err: unknown) {
-        console.error('Failed to load dashboard data:', err);
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const walkRoutesGeoJson: GeoJSON.FeatureCollection = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: walkRoutes.map((walk) => ({
+      type: 'Feature' as const,
+      properties: { id: walk.id, title: walk.title },
+      geometry: { type: 'LineString' as const, coordinates: walk.route },
+    })),
+  }), [walkRoutes]);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -191,33 +233,6 @@ export default function DashboardPage() {
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
-
-  const handleDragStart = useCallback((e: ReactPointerEvent) => {
-    draggingRef.current = true;
-    setIsDragging(true);
-    dragMovedRef.current = false;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-
-  const handleDragMove = useCallback((e: ReactPointerEvent) => {
-    if (!draggingRef.current || !dashboardRef.current) return;
-    dragMovedRef.current = true;
-    const rect = dashboardRef.current.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const ratio = 1 - y / rect.height;
-    const clamped = Math.min(0.65, Math.max(0.15, ratio));
-    setPanelRatio(clamped);
-    setPanelCollapsed(false);
-    prevRatioRef.current = clamped;
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    if (!dragMovedRef.current) {
-      setPanelCollapsed((prev) => !prev);
-    }
-    draggingRef.current = false;
-    setIsDragging(false);
   }, []);
 
   const toggle3dBuildings = useCallback(() => {
@@ -282,6 +297,7 @@ export default function DashboardPage() {
         featureType: pin.type,
         address: pin.address,
         colour: PIN_COLOURS[pin.type],
+        pinIcon: PIN_ICONS[pin.type],
       },
     })),
   };
@@ -298,6 +314,22 @@ export default function DashboardPage() {
       'circle-color': colourExpr,
       'circle-stroke-width': 1.5,
       'circle-stroke-color': 'rgba(250, 248, 245, 0.7)',
+    },
+  };
+
+  const iconLayer: any = {
+    id: 'gt-pins-icon',
+    type: 'symbol',
+    source: 'gt-pins',
+    layout: {
+      'text-field': ['get', 'pinIcon'],
+      'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+      'text-size': 9,
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: {
+      'text-color': '#FAF8F5',
     },
   };
 
@@ -324,6 +356,24 @@ export default function DashboardPage() {
   };
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
+  function handleDaClick(e: MapMouseEvent): boolean {
+    if (!isDaLayerActive) return false;
+    const map = mapRef.current?.getMap();
+    if (!map) return false;
+
+    const features = map.queryRenderedFeatures(e.point, { layers: ['gt-das-circle'] });
+    const feature = features?.[0];
+    if (!feature?.properties) return false;
+
+    const props = feature.properties;
+    const daId = typeof props['id'] === 'string' ? props['id'] : '';
+    const matched = daPoints.find((d) => d.id === daId);
+    if (!matched) return false;
+
+    setDaPopup({ longitude: matched.longitude, latitude: matched.latitude, da: matched });
+    return true;
+  }
+
   function handlePinClick(e: MapMouseEvent): void {
     type MapClickEvent = MapMouseEvent & { features?: Array<{ properties?: Record<string, unknown> }> };
     const feature = (e as MapClickEvent).features?.[0];
@@ -336,19 +386,25 @@ export default function DashboardPage() {
     }
   }
 
+  function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value);
+  }
+
   function handleMapClick(e: MapMouseEvent): void {
     if (isMeasuring) {
       const { lng, lat } = e.lngLat;
       addMeasurePoint(lng, lat);
       return;
     }
+    setDaPopup(null);
+    if (handleDaClick(e)) return;
     handlePinClick(e);
   }
 
   return (
     <div className={styles.dashboard} ref={dashboardRef}>
       {/* Map */}
-      <div className={styles.mapContainer} ref={mapContainerRef}>
+      <div className={styles.mapContainer} ref={mapContainerRef} role="region" aria-label="Property map showing pins for your snaps, inspections, appraisals, and monitored properties">
         <Map
           ref={mapRef}
           mapboxAccessToken={MAPBOX_TOKEN}
@@ -360,7 +416,7 @@ export default function DashboardPage() {
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/dark-v11"
           projection="mercator"
-          interactiveLayerIds={['gt-pins-circle']}
+          interactiveLayerIds={isDaLayerActive ? ['gt-pins-circle', 'gt-das-circle'] : ['gt-pins-circle']}
           onClick={handleMapClick}
           cursor={isMeasuring ? 'crosshair' : 'pointer'}
           onMouseMove={(e) => {
@@ -392,9 +448,59 @@ export default function DashboardPage() {
             </Source>
           ))}
 
+          {/* NSW spatial GeoJSON vector layers */}
+          {activeNswLayers.map((cfg) => {
+            const geojson = nswGeoJsonMap[cfg.id];
+            if (!geojson || geojson.features.length === 0) return null;
+            const layer = spatialLayers.find((l) => l.id === cfg.id);
+            const colour = layer?.colour ?? '#888';
+            const opacity = layer?.opacity ?? 0.5;
+            const hasPolygons = geojson.features.some(
+              (f) => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon',
+            );
+            const hasPoints = geojson.features.some((f) => f.geometry.type === 'Point');
+            return (
+              <Source key={cfg.id} id={`gt-nsw-${cfg.id}`} type="geojson" data={geojson}>
+                {hasPolygons && (
+                  <>
+                    <Layer
+                      id={`gt-nsw-${cfg.id}-fill`}
+                      type="fill"
+                      beforeId="gt-pins-circle"
+                      filter={['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']]}
+                      paint={{ 'fill-color': colour, 'fill-opacity': opacity * 0.35 }}
+                    />
+                    <Layer
+                      id={`gt-nsw-${cfg.id}-outline`}
+                      type="line"
+                      beforeId="gt-pins-circle"
+                      filter={['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'MultiPolygon']]}
+                      paint={{ 'line-color': colour, 'line-width': 1, 'line-opacity': opacity * 0.7 }}
+                    />
+                  </>
+                )}
+                {hasPoints && (
+                  <Layer
+                    id={`gt-nsw-${cfg.id}-point`}
+                    type="circle"
+                    beforeId="gt-pins-circle"
+                    filter={['==', ['geometry-type'], 'Point']}
+                    paint={{
+                      'circle-radius': 5,
+                      'circle-color': colour,
+                      'circle-stroke-width': 1,
+                      'circle-stroke-color': 'rgba(250,248,245,0.6)',
+                      'circle-opacity': opacity,
+                    }}
+                  />
+                )}
+              </Source>
+            );
+          })}
+
           {/* Walk route polylines */}
-          {walkRoutes.features.length > 0 && (
-            <Source id="gt-walks" type="geojson" data={walkRoutes}>
+          {walkRoutesGeoJson.features.length > 0 && (
+            <Source id="gt-walks" type="geojson" data={walkRoutesGeoJson}>
               <Layer
                 id="gt-walks-line"
                 type="line"
@@ -552,8 +658,68 @@ export default function DashboardPage() {
 
           <Source id="gt-pins" type="geojson" data={pinsGeoJson}>
             <Layer {...circleLayer} />
+            <Layer {...iconLayer} />
             <Layer {...labelLayer} />
           </Source>
+
+          {/* DA detail popup */}
+          {daPopup && (
+            <Popup
+              longitude={daPopup.longitude}
+              latitude={daPopup.latitude}
+              onClose={() => setDaPopup(null)}
+              closeOnClick={false}
+              maxWidth="320px"
+              offset={12}
+            >
+              <div className={styles.daPopup}>
+                <div className={styles.daPopupHeader}>
+                  <span className={styles.daPopupStatus} data-status={daPopup.da.status}>
+                    {daPopup.da.status}
+                  </span>
+                  {daPopup.da.type && (
+                    <span className={styles.daPopupType}>{daPopup.da.type}</span>
+                  )}
+                </div>
+                <div className={styles.daPopupAddress}>{daPopup.da.address}</div>
+                {daPopup.da.description && (
+                  <p className={styles.daPopupDesc}>{daPopup.da.description}</p>
+                )}
+                <div className={styles.daPopupMeta}>
+                  {daPopup.da.cost != null && daPopup.da.cost > 0 && (
+                    <div className={styles.daPopupRow}>
+                      <span className={styles.daPopupLabel}>Estimated cost</span>
+                      <span className={styles.daPopupValue}>{formatCurrency(daPopup.da.cost)}</span>
+                    </div>
+                  )}
+                  {daPopup.da.lodgementDate && (
+                    <div className={styles.daPopupRow}>
+                      <span className={styles.daPopupLabel}>Lodged</span>
+                      <span className={styles.daPopupValue}>
+                        {new Date(daPopup.da.lodgementDate).toLocaleDateString('en-AU', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {daPopup.da.council && (
+                    <div className={styles.daPopupRow}>
+                      <span className={styles.daPopupLabel}>Council</span>
+                      <span className={styles.daPopupValue}>{daPopup.da.council}</span>
+                    </div>
+                  )}
+                </div>
+                <a
+                  className={styles.daPopupLink}
+                  href={`https://www.planningportal.nsw.gov.au/datracker/application/${encodeURIComponent(daPopup.da.id)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View on DA Tracker <ExternalLink size={12} />
+                </a>
+              </div>
+            </Popup>
+          )}
         </Map>
 
         {/* Layer control — top left */}
@@ -594,40 +760,35 @@ export default function DashboardPage() {
         <div className={styles.legend}>
           {Object.entries(PIN_COLOURS).map(([type, colour]) => (
             <div key={type} className={styles.legendItem}>
-              <div className={styles.legendDot} style={{ backgroundColor: colour }} />
+              <div className={styles.legendDot} style={{ backgroundColor: colour }}>
+                <span className={styles.legendDotLetter}>{PIN_ICONS[type as FeatureType]}</span>
+              </div>
               <span>{FEATURE_LABELS[type as FeatureType]}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div
-        className={`${styles.dragHandle} ${panelCollapsed ? styles.dragHandleCollapsed : ''}`}
-        onPointerDown={handleDragStart}
-        onPointerMove={handleDragMove}
-        onPointerUp={handleDragEnd}
-        onPointerCancel={handleDragEnd}
-      >
-        {panelCollapsed ? <ChevronUp size={16} className={styles.dragChevron} /> : <ChevronDown size={16} className={styles.dragChevron} />}
-        <div className={styles.dragHandleBar} />
-        {panelCollapsed ? <ChevronUp size={16} className={styles.dragChevron} /> : <ChevronDown size={16} className={styles.dragChevron} />}
-      </div>
-
-      <div
-        className={`${styles.panelWrapper} ${panelCollapsed ? styles.panelCollapsed : ''} ${isDragging ? styles.panelDragging : ''}`}
-        style={{ '--panel-ratio': panelRatio } as React.CSSProperties}
-      >
-        <ActivityPanel
-          activity={activity}
-          pins={pins}
-          isLoading={isLoading}
-          expandedProperty={expandedProperty}
-          onExpandProperty={setExpandedProperty}
-          onFlyTo={(lng, lat) => {
-            mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
-          }}
+      {!isLoading && pins.length === 0 ? (
+        <EmptyState
+          icon={<MapPinIcon />}
+          title="Your map is empty"
+          subtitle="Capture some properties to see them here"
         />
-      </div>
+      ) : (
+        <BottomSheet title="Properties">
+          <ActivityPanel
+            activity={activity}
+            pins={pins}
+            isLoading={isLoading}
+            expandedProperty={expandedProperty}
+            onExpandProperty={setExpandedProperty}
+            onFlyTo={(lng, lat) => {
+              mapRef.current?.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+            }}
+          />
+        </BottomSheet>
+      )}
     </div>
   );
 }

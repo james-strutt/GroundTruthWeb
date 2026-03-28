@@ -3,17 +3,18 @@
  * with activity count badges and status indicators.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MapPin, Calendar, Camera, ClipboardCheck, BarChart3, Eye,
   Plus, Building,
 } from 'lucide-react';
-import { getDirectory, listPropertiesByDirectory, createProperty } from '../../services/api';
+import { useDirectoryQuery } from '../../hooks/queries/useDirectories';
+import { usePropertiesByDirectoryQuery, useCreateProperty } from '../../hooks/queries/useProperties';
 import { Breadcrumb } from '../../components/shared/Breadcrumb';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
-import type { Directory, PropertySummary, PropertyStatus } from '../../types/common';
+import type { PropertyStatus } from '../../types/common';
 import styles from './DirectoryDetail.module.css';
 
 function formatDate(iso: string | null): string {
@@ -43,41 +44,19 @@ function statusLabel(status: PropertyStatus): string {
 export default function DirectoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [directory, setDirectory] = useState<Directory | null>(null);
-  const [properties, setProperties] = useState<PropertySummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: directory, isLoading: dirLoading, error: dirError, refetch: refetchDir } = useDirectoryQuery(id);
+  const { data: properties = [], isLoading: propsLoading, error: propsError, refetch: refetchProps } = usePropertiesByDirectoryQuery(id);
   const [showModal, setShowModal] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [dir, props] = await Promise.all([
-        getDirectory(id),
-        listPropertiesByDirectory(id),
-      ]);
-      setDirectory(dir);
-      setProperties(props);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load directory');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+  const isLoading = dirLoading || propsLoading;
+  const error = dirError || propsError;
 
   function handlePropertyCreated() {
     setShowModal(false);
-    void fetchData();
   }
 
-  if (loading) return <LoadingSpinner message="Loading directory..." />;
-  if (error) return <ErrorMessage message={error} onRetry={() => void fetchData()} />;
+  if (isLoading) return <SkeletonCard count={4} />;
+  if (error) return <ErrorMessage message={error instanceof Error ? error.message : 'Failed to load directory'} onRetry={() => { void refetchDir(); void refetchProps(); }} />;
   if (!directory) return <ErrorMessage message="Directory not found" type="notFound" />;
 
   return (
@@ -120,7 +99,7 @@ export default function DirectoryDetailPage() {
             >
               {p.thumbnailUrl ? (
                 <div className={styles.thumbnail}>
-                  <img src={p.thumbnailUrl} alt="" className={styles.thumbnailImg} />
+                  <img src={p.thumbnailUrl} alt="" className={styles.thumbnailImg} loading="lazy" width={64} height={64} />
                 </div>
               ) : (
                 <div className={styles.thumbnailPlaceholder}>
@@ -203,9 +182,9 @@ interface AddPropertyModalProps {
 function AddPropertyModal({ directoryId, onClose, onCreated }: AddPropertyModalProps) {
   const [address, setAddress] = useState('');
   const [suburb, setSuburb] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const createMutation = useCreateProperty();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -237,20 +216,17 @@ function AddPropertyModal({ directoryId, onClose, onCreated }: AddPropertyModalP
     };
   }, [onClose]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!address.trim()) return;
-    setSubmitting(true);
-    try {
-      const result = await createProperty({
+    createMutation.mutate(
+      {
         directoryId,
         address: address.trim(),
         suburb: suburb.trim() || undefined,
-      });
-      if (result) onCreated();
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      { onSuccess: () => onCreated() },
+    );
   }
 
   return (
@@ -264,7 +240,7 @@ function AddPropertyModal({ directoryId, onClose, onCreated }: AddPropertyModalP
         aria-label="Add property"
       >
         <h3 className={styles.modalTitle}>Add Property</h3>
-        <form onSubmit={(e) => void handleSubmit(e)}>
+        <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel} htmlFor="prop-address">Address</label>
             <input
@@ -297,9 +273,9 @@ function AddPropertyModal({ directoryId, onClose, onCreated }: AddPropertyModalP
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={!address.trim() || submitting}
+              disabled={!address.trim() || createMutation.isPending}
             >
-              {submitting ? 'Adding...' : 'Add'}
+              {createMutation.isPending ? 'Adding...' : 'Add'}
             </button>
           </div>
         </form>

@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   if (isLoading) return null;
   if (isAuthenticated) return <Navigate to="/app" replace />;
@@ -42,6 +43,7 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="Email"
+            aria-label="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={styles.input}
@@ -51,6 +53,7 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Password"
+            aria-label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={styles.input}
@@ -59,9 +62,22 @@ export default function LoginPage() {
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
           />
 
-          {error && <p className={styles.error}>{error}</p>}
+          {isSignUp && (
+            <label className={styles.termsCheck}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+              />
+              <span>
+                I agree to the <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>
+              </span>
+            </label>
+          )}
 
-          <button type="submit" className={styles.submitButton} disabled={submitting}>
+          {error && <p id="login-error" className={styles.error} role="alert">{error}</p>}
+
+          <button type="submit" className={styles.submitButton} disabled={submitting || (isSignUp && !termsAccepted)} aria-describedby={error ? 'login-error' : undefined}>
             {submitting ? 'Loading...' : isSignUp ? 'Create account' : 'Sign in'}
           </button>
         </form>
@@ -79,6 +95,12 @@ export default function LoginPage() {
           <button className={styles.toggleButton} onClick={() => setIsSignUp(!isSignUp)}>
             {isSignUp ? 'Sign in' : 'Sign up'}
           </button>
+        </p>
+
+        <p className={styles.legal}>
+          By signing in you agree to our{' '}
+          <Link to="/terms">Terms</Link> and{' '}
+          <Link to="/privacy">Privacy Policy</Link>.
         </p>
       </div>
     </div>

@@ -147,6 +147,49 @@
   padding: 0;
 }
 
+.termsCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.termsCheck input[type="checkbox"] {
+  margin-top: 0.2rem;
+  accent-color: var(--terracotta);
+}
+
+.termsCheck a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.termsCheck a:hover {
+  color: var(--terracotta);
+}
+
+.legal {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
+.legal a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal a:hover {
+  color: var(--terracotta);
+}
+
 .toggleButton:hover {
   text-decoration: underline;
 }

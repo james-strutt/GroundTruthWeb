@@ -1,0 +1,12 @@
+{
+  "name": "GroundTruth",
+  "short_name": "GroundTruth",
+  "description": "AI-powered property field intelligence",
+  "start_url": "/app",
+  "display": "standalone",
+  "theme_color": "#1C1917",
+  "background_color": "#121110",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

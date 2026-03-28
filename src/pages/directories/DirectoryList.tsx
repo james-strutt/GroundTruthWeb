@@ -3,13 +3,13 @@
  * Entry point for the directory-first property organisation.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Building, Calendar, Activity } from 'lucide-react';
-import { listDirectories, createDirectory } from '../../services/api';
-import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
+import { Plus, Building, Calendar, Activity, FolderOpen } from 'lucide-react';
+import { useDirectoriesQuery, useCreateDirectory } from '../../hooks/queries/useDirectories';
+import { SkeletonCard } from '../../components/shared/SkeletonCard';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
-import type { DirectorySummary } from '../../types/common';
+import { EmptyState } from '../../components/shared/EmptyState';
 import styles from './DirectoryList.module.css';
 
 const COLOUR_OPTIONS = [
@@ -25,31 +25,11 @@ function formatDate(iso: string | null): string {
 
 export default function DirectoryListPage() {
   const navigate = useNavigate();
-  const [directories, setDirectories] = useState<DirectorySummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: directories = [], isLoading, error, refetch } = useDirectoriesQuery();
   const [showModal, setShowModal] = useState(false);
-
-  const fetchDirectories = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listDirectories();
-      setDirectories(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load directories');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchDirectories();
-  }, [fetchDirectories]);
 
   function handleCreated() {
     setShowModal(false);
-    void fetchDirectories();
   }
 
   return (
@@ -66,14 +46,16 @@ export default function DirectoryListPage() {
         </button>
       </div>
 
-      {loading ? (
-        <LoadingSpinner message="Loading directories..." />
+      {isLoading ? (
+        <SkeletonCard count={4} />
       ) : error ? (
-        <ErrorMessage message={error} onRetry={() => { setError(null); void fetchDirectories(); }} />
+        <ErrorMessage message={error instanceof Error ? error.message : 'Failed to load directories'} onRetry={() => void refetch()} />
       ) : directories.length === 0 ? (
-        <p className={styles.empty}>
-          No directories yet. Create one to start organising your properties.
-        </p>
+        <EmptyState
+          icon={<FolderOpen size={48} />}
+          title="No directories yet"
+          subtitle="Create your first directory to organise properties"
+        />
       ) : (
         <div className={styles.grid}>
           {directories.map((dir) => (
@@ -138,9 +120,9 @@ function CreateDirectoryModal({ onClose, onCreated }: CreateDirectoryModalProps)
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [colour, setColour] = useState(COLOUR_OPTIONS[0]!);
-  const [submitting, setSubmitting] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const createMutation = useCreateDirectory();
 
   useEffect(() => {
     nameRef.current?.focus();
@@ -172,20 +154,17 @@ function CreateDirectoryModal({ onClose, onCreated }: CreateDirectoryModalProps)
     };
   }, [onClose]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    setSubmitting(true);
-    try {
-      const result = await createDirectory({
+    createMutation.mutate(
+      {
         name: name.trim(),
         description: description.trim() || undefined,
         colour,
-      });
-      if (result) onCreated();
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      { onSuccess: () => onCreated() },
+    );
   }
 
   return (
@@ -199,7 +178,7 @@ function CreateDirectoryModal({ onClose, onCreated }: CreateDirectoryModalProps)
         aria-label="Create directory"
       >
         <h3 className={styles.modalTitle}>New Directory</h3>
-        <form onSubmit={(e) => void handleSubmit(e)}>
+        <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel} htmlFor="dir-name">Name</label>
             <input
@@ -250,9 +229,9 @@ function CreateDirectoryModal({ onClose, onCreated }: CreateDirectoryModalProps)
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={!name.trim() || submitting}
+              disabled={!name.trim() || createMutation.isPending}
             >
-              {submitting ? 'Creating...' : 'Create'}
+              {createMutation.isPending ? 'Creating...' : 'Create'}
             </button>
           </div>
         </form>

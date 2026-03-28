@@ -40,6 +40,57 @@ interface DARow {
   locations: { FullAddress?: string; X?: number; Y?: number; Suburb?: string }[] | null;
 }
 
+export async function fetchDAsNearPoint(
+  longitude: number,
+  latitude: number,
+  radiusMetres = 200,
+  limit = 20,
+): Promise<DA[]> {
+  if (!daSupabase) return [];
+
+  try {
+    const { data, error } = await daSupabase.rpc('search_da_near_point', {
+      p_longitude: longitude,
+      p_latitude: latitude,
+      p_radius_metres: radiusMetres,
+      p_limit: limit,
+    });
+
+    if (error || !data) return [];
+
+    return (data as DARow[])
+      .map(mapDARow)
+      .filter((d): d is DA => d !== null);
+  } catch {
+    return [];
+  }
+}
+
+function mapDARow(row: DARow): DA | null {
+  const loc = row.locations?.[0];
+  const lat = loc?.Y;
+  const lng = loc?.X;
+  if (!lat || !lng) return null;
+
+  const devTypes = (row.development_types ?? [])
+    .map((t) => t.DevelopmentType)
+    .filter((t): t is string => !!t);
+
+  return {
+    id: row.application_id,
+    address: row.primary_address ?? loc?.FullAddress ?? '',
+    suburb: row.suburb ?? loc?.Suburb ?? '',
+    latitude: lat,
+    longitude: lng,
+    status: row.application_status ?? 'Unknown',
+    type: devTypes.join(', ') || (row.development_description?.slice(0, 60) ?? ''),
+    description: row.development_description ?? '',
+    cost: row.cost_of_development,
+    lodgementDate: row.lodgement_date,
+    council: row.council_name,
+  };
+}
+
 export async function fetchDAsInBounds(
   west: number,
   south: number,
@@ -49,8 +100,6 @@ export async function fetchDAsInBounds(
 ): Promise<DA[]> {
   if (!daSupabase) return [];
 
-  // Use the centre of the bounds as the query point with a radius
-  // covering the viewport diagonal
   const centLng = (west + east) / 2;
   const centLat = (south + north) / 2;
   const dlat = Math.abs(north - south) * 111_320;
@@ -68,30 +117,7 @@ export async function fetchDAsInBounds(
     if (error || !data) return [];
 
     return (data as DARow[])
-      .map((row): DA | null => {
-        const loc = row.locations?.[0];
-        const lat = loc?.Y;
-        const lng = loc?.X;
-        if (!lat || !lng) return null;
-
-        const devTypes = (row.development_types ?? [])
-          .map((t) => t.DevelopmentType)
-          .filter((t): t is string => !!t);
-
-        return {
-          id: row.application_id,
-          address: row.primary_address ?? loc?.FullAddress ?? '',
-          suburb: row.suburb ?? loc?.Suburb ?? '',
-          latitude: lat,
-          longitude: lng,
-          status: row.application_status ?? 'Unknown',
-          type: devTypes.join(', ') || (row.development_description?.slice(0, 60) ?? ''),
-          description: row.development_description ?? '',
-          cost: row.cost_of_development,
-          lodgementDate: row.lodgement_date,
-          council: row.council_name,
-        };
-      })
+      .map(mapDARow)
       .filter((d): d is DA => d !== null);
   } catch {
     return [];
