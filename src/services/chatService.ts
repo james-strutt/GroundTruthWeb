@@ -3,7 +3,11 @@
  * Mirrors the mobile app's chat services against the same Supabase tables.
  */
 
-import { supabase } from '../supabaseClient';
+import { supabase as typedSupabase } from '../supabaseClient';
+
+// Cast to untyped client — chat tables aren't in the generated Database type yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 
 /* ---------- Types ---------- */
 

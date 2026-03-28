@@ -3,7 +3,10 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase as typedSupabase } from '../supabaseClient';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 import {
   fetchMessages,
   sendMessage,

@@ -6,14 +6,13 @@
 import { useState, useEffect, useCallback, useRef, type FormEvent } from 'react';
 import { MessageSquare, Plus, Send, User, Building2, Paperclip, FileText, Image, Download, Sparkles, Search, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../supabaseClient';
+import { supabase as typedSupabase } from '../../supabaseClient';
 import {
   fetchUserRooms,
   fetchRoomById,
   createChannel,
   createDirectMessage,
   createDealRoom,
-  updateLastRead,
   startTyping as apiStartTyping,
   stopTyping as apiStopTyping,
   toggleReaction,
@@ -28,8 +27,10 @@ import {
   type ChatRoomWithUnread,
   type ChatMessage,
   type ChatTypingUser,
-  type ChatMessageType,
 } from '../../services/chatService';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 import { useChatMessages } from '../../hooks/useChatMessages';
 import styles from './ChatPage.module.css';
 
@@ -629,7 +630,7 @@ export default function ChatPage() {
                             {isAIReview && reviewResult && (
                               <div className={styles.aiReviewCard}>
                                 <div className={styles.aiReviewHeader}><Sparkles size={14} /> AI Document Review</div>
-                                <div className={styles.aiReviewSummary}>{reviewResult['summary'] as string}</div>
+                                <div className={styles.aiReviewSummary}>{String(reviewResult['summary'] ?? '')}</div>
 
                                 {Array.isArray(reviewResult['keyFindings']) && (reviewResult['keyFindings'] as Array<Record<string, unknown>>).length > 0 && (
                                   <div className={styles.aiReviewSection}>
@@ -637,7 +638,7 @@ export default function ChatPage() {
                                     <div className={styles.aiFindings}>
                                       {(reviewResult['keyFindings'] as Array<Record<string, unknown>>).map((f, i) => (
                                         <div key={i} className={styles.aiFinding}>
-                                          <strong>{f['category'] as string}:</strong> {f['finding'] as string}
+                                          <strong>{String(f['category'] ?? '')}:</strong> {String(f['finding'] ?? '')}
                                         </div>
                                       ))}
                                     </div>
@@ -649,8 +650,8 @@ export default function ChatPage() {
                                     <div className={styles.aiRedFlagsTitle}>Red Flags</div>
                                     {(reviewResult['redFlags'] as Array<Record<string, unknown>>).map((f, i) => (
                                       <div key={i} className={styles.aiRedFlag}>
-                                        <strong>{f['flag'] as string}</strong>
-                                        {f['explanation'] && <> — {f['explanation'] as string}</>}
+                                        <strong>{String(f['flag'] ?? '')}</strong>
+                                        {f['explanation'] && <> — {String(f['explanation'])}</>}
                                       </div>
                                     ))}
                                   </div>
