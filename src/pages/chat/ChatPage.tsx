@@ -161,7 +161,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!currentRoomId || !supabase) return;
     const ch = supabase.channel(`web:typing:${currentRoomId}`);
-    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'chat_typing_status', filter: `room_id=eq.${currentRoomId}` }, (payload) => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'chat_typing_status', filter: `room_id=eq.${currentRoomId}` }, (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
         const row = payload.new as Record<string, unknown>;
         const uid = row['user_id'] as string;
@@ -669,7 +669,7 @@ export default function ChatPage() {
                                         <>
                                           <div className={styles.aiReviewSectionTitle}>Encumbrances</div>
                                           <div className={styles.aiFindings}>
-                                            {encumbrances.map((e, i) => <div key={i} className={styles.aiFinding}>{e}</div>)}
+                                            {encumbrances.map((e, i) => <div key={i} className={styles.aiFinding}>{String(e)}</div>)}
                                           </div>
                                         </>
                                       )}
@@ -677,7 +677,7 @@ export default function ChatPage() {
                                         <>
                                           <div className={styles.aiReviewSectionTitle} style={{ marginTop: 8 }}>Special Conditions</div>
                                           <div className={styles.aiFindings}>
-                                            {conditions.map((c, i) => <div key={i} className={styles.aiFinding}>{c}</div>)}
+                                            {conditions.map((c, i) => <div key={i} className={styles.aiFinding}>{String(c)}</div>)}
                                           </div>
                                         </>
                                       )}
@@ -687,8 +687,8 @@ export default function ChatPage() {
 
                                 {reviewResult['confidence'] && (
                                   <div className={styles.aiConfidence}>
-                                    Confidence: {Math.round(reviewResult['confidence'] as number)}%
-                                    {reviewResult['processingTimeMs'] && <> · {((reviewResult['processingTimeMs'] as number) / 1000).toFixed(1)}s</>}
+                                    Confidence: {Math.round(Number(reviewResult['confidence']))}%
+                                    {reviewResult['processingTimeMs'] && <> · {(Number(reviewResult['processingTimeMs']) / 1000).toFixed(1)}s</>}
                                   </div>
                                 )}
                               </div>

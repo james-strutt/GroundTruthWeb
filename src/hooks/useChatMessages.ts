@@ -92,7 +92,7 @@ export function useChatMessages({ roomId, userId, displayName }: UseChatMessages
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
-        (payload) => {
+        (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
           if (payload.eventType === 'INSERT') {
             const row = payload.new as Record<string, unknown>;
             if (row['parent_id']) return; // skip thread messages in main view
