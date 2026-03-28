@@ -651,13 +651,13 @@ export default function ChatPage() {
                                     {(reviewResult['redFlags'] as Array<Record<string, unknown>>).map((f, i) => (
                                       <div key={i} className={styles.aiRedFlag}>
                                         <strong>{String(f['flag'] ?? '')}</strong>
-                                        {f['explanation'] && <> — {String(f['explanation'])}</>}
+                                        {f['explanation'] ? <>{' — '}{String(f['explanation'])}</> : null}
                                       </div>
                                     ))}
                                   </div>
                                 )}
 
-                                {reviewResult['extractedData'] && (() => {
+                                {reviewResult['extractedData'] != null && (() => {
                                   const ed = reviewResult['extractedData'] as Record<string, unknown>;
                                   const encumbrances = ed['encumbrances'] as string[] | undefined;
                                   const conditions = ed['conditions'] as string[] | undefined;
@@ -685,10 +685,10 @@ export default function ChatPage() {
                                   );
                                 })()}
 
-                                {reviewResult['confidence'] && (
+                                {reviewResult['confidence'] != null && (
                                   <div className={styles.aiConfidence}>
-                                    Confidence: {Math.round(Number(reviewResult['confidence']))}%
-                                    {reviewResult['processingTimeMs'] && <> · {(Number(reviewResult['processingTimeMs']) / 1000).toFixed(1)}s</>}
+                                    {'Confidence: '}{Math.round(Number(reviewResult['confidence']))}{'%'}
+                                    {reviewResult['processingTimeMs'] != null ? <>{' · '}{(Number(reviewResult['processingTimeMs']) / 1000).toFixed(1)}{'s'}</> : null}
                                   </div>
                                 )}
                               </div>
