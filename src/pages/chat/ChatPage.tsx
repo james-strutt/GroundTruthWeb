@@ -332,12 +332,12 @@ export default function ChatPage() {
     setDmSearch(query);
     if (!supabase || query.length < 2) { setDmResults([]); return; }
     const { data } = await supabase
-      .from('chat_user_presence')
-      .select('user_id, display_name')
-      .ilike('display_name', `%${query}%`)
-      .neq('user_id', userId)
+      .from('users')
+      .select('id, display_name')
+      .or(`display_name.ilike.%${query}%,email.ilike.%${query}%`)
+      .neq('id', userId)
       .limit(10);
-    if (data) setDmResults(data.map((r: Record<string, unknown>) => ({ userId: r['user_id'] as string, displayName: r['display_name'] as string })));
+    if (data) setDmResults(data.map((r: Record<string, unknown>) => ({ userId: r['id'] as string, displayName: (r['display_name'] as string) ?? '' })));
   }, [userId]);
 
   const handleSelectDmUser = useCallback(async (targetUserId: string) => {
