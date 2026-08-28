@@ -56,61 +56,63 @@ function PageLoader() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <ToastProvider>
-              <ErrorBoundary>
-                <OfflineBanner />
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/" element={<App />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
+    <div id="app-shell">
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <ToastProvider>
+                <ErrorBoundary>
+                  <OfflineBanner />
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      {/* Public routes */}
+                      <Route path="/" element={<App />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/privacy" element={<PrivacyPage />} />
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/pricing" element={<PricingPage />} />
 
-                    {/* Authenticated app */}
-                    <Route
-                      path="/app"
-                      element={
-                        <ProtectedRoute>
-                          <AppLayout />
-                        </ProtectedRoute>
-                      }
-                    >
-                      <Route index element={<Suspense fallback={<SkeletonMap />}><DashboardPage /></Suspense>} />
-                      <Route path="directories" element={<DirectoryListPage />} />
-                      <Route path="directories/:id" element={<DirectoryDetailPage />} />
-                      <Route path="directories/:dirId/properties/:propId" element={<PropertyDetailPage />} />
-                      <Route path="properties" element={<PropertyListPage />} />
-                      <Route path="properties/:id" element={<PropertyDetailPage />} />
-                      <Route path="snaps" element={<SnapListPage />} />
-                      <Route path="snaps/:id" element={<SnapDetailPage />} />
-                      <Route path="inspections" element={<InspectionListPage />} />
-                      <Route path="inspections/:id" element={<InspectionDetailPage />} />
-                      <Route path="appraisals" element={<AppraisalListPage />} />
-                      <Route path="appraisals/:id" element={<AppraisalDetailPage />} />
-                      <Route path="monitor" element={<MonitorListPage />} />
-                      <Route path="monitor/:id" element={<MonitorDetailPage />} />
-                      <Route path="walks" element={<WalkListPage />} />
-                      <Route path="walks/:id" element={<WalkDetailPage />} />
-                      <Route path="chat" element={<ChatPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                    </Route>
+                      {/* Authenticated app */}
+                      <Route
+                        path="/app"
+                        element={
+                          <ProtectedRoute>
+                            <AppLayout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        <Route index element={<Suspense fallback={<SkeletonMap />}><DashboardPage /></Suspense>} />
+                        <Route path="directories" element={<DirectoryListPage />} />
+                        <Route path="directories/:id" element={<DirectoryDetailPage />} />
+                        <Route path="directories/:dirId/properties/:propId" element={<PropertyDetailPage />} />
+                        <Route path="properties" element={<PropertyListPage />} />
+                        <Route path="properties/:id" element={<PropertyDetailPage />} />
+                        <Route path="snaps" element={<SnapListPage />} />
+                        <Route path="snaps/:id" element={<SnapDetailPage />} />
+                        <Route path="inspections" element={<InspectionListPage />} />
+                        <Route path="inspections/:id" element={<InspectionDetailPage />} />
+                        <Route path="appraisals" element={<AppraisalListPage />} />
+                        <Route path="appraisals/:id" element={<AppraisalDetailPage />} />
+                        <Route path="monitor" element={<MonitorListPage />} />
+                        <Route path="monitor/:id" element={<MonitorDetailPage />} />
+                        <Route path="walks" element={<WalkListPage />} />
+                        <Route path="walks/:id" element={<WalkDetailPage />} />
+                        <Route path="chat" element={<ChatPage />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                      </Route>
 
-                    {/* Catch-all */}
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </Suspense>
-              </ErrorBoundary>
-            </ToastProvider>
-          </SubscriptionProvider>
-        </AuthProvider>
-      </BrowserRouter>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-    </QueryClientProvider>
+                      {/* Catch-all */}
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </Suspense>
+                </ErrorBoundary>
+              </ToastProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </BrowserRouter>
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
+    </div>
   </StrictMode>,
 );
